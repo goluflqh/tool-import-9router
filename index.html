@@ -1,0 +1,1123 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>9router Import Tool</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #222633;
+      --border: #2d3348;
+      --text: #e4e6ef;
+      --muted: #8b8fa3;
+      --accent: #6c8cff;
+      --accent2: #4f6fe0;
+      --green: #34d399;
+      --green-bg: rgba(52, 211, 153, .12);
+      --red: #f87171;
+      --red-bg: rgba(248, 113, 113, .12);
+      --yellow: #fbbf24;
+      --mono: "SF Mono", Consolas, monospace;
+      --sans: "Inter", sans-serif;
+      --r: 10px;
+      --shadow: 0 8px 32px rgba(0, 0, 0, .4)
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100vh
+    }
+
+    body {
+      font-family: var(--sans);
+      color: var(--text);
+      background: var(--bg)
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit
+    }
+
+    button {
+      border: 0;
+      cursor: pointer
+    }
+
+    code {
+      font-family: var(--mono);
+      font-size: .82em;
+      background: var(--surface2);
+      padding: 2px 6px;
+      border-radius: 4px
+    }
+
+    .app {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 16px 60px
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 28px
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.8rem;
+      background: linear-gradient(135deg, var(--accent), var(--green));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent
+    }
+
+    header p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: .88rem
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 20px;
+      padding: 10px;
+      border-radius: var(--r);
+      font-size: .85rem;
+      font-weight: 600
+    }
+
+    .status-bar.online {
+      background: var(--green-bg);
+      color: var(--green)
+    }
+
+    .status-bar.offline {
+      background: var(--red-bg);
+      color: var(--red)
+    }
+
+    .status-bar .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse 2s infinite
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .4
+      }
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0
+    }
+
+    .tab-btn {
+      padding: 10px 18px;
+      background: none;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: .88rem;
+      border-bottom: 2px solid transparent;
+      transition: .15s
+    }
+
+    .tab-btn:hover {
+      color: var(--text)
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent)
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      margin-bottom: 14px;
+      overflow: hidden
+    }
+
+    .panel-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 1rem
+    }
+
+    .panel-head p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: .84rem
+    }
+
+    .panel-body {
+      padding: 16px
+    }
+
+    textarea {
+      display: block;
+      width: 100%;
+      min-height: 200px;
+      resize: vertical;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 12px;
+      background: var(--surface2);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: .81rem;
+      line-height: 1.5
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent)
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 8px 16px;
+      border-radius: var(--r);
+      font-size: .88rem;
+      font-weight: 700;
+      transition: .15s
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent2)
+    }
+
+    .btn-primary:disabled {
+      opacity: .4;
+      cursor: not-allowed
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted)
+    }
+
+    .btn-ghost:hover {
+      background: var(--surface2);
+      color: var(--text)
+    }
+
+    .btn-danger {
+      background: var(--red-bg);
+      color: var(--red);
+      border: 1px solid rgba(248, 113, 113, .2)
+    }
+
+    .btn-danger:hover {
+      background: rgba(248, 113, 113, .2)
+    }
+
+    .btn-block {
+      width: 100%;
+      min-height: 44px;
+      font-size: .95rem
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 14px
+    }
+
+    .stat {
+      padding: 12px;
+      background: var(--surface2);
+      border-radius: var(--r);
+      text-align: center
+    }
+
+    .stat-val {
+      font-family: var(--mono);
+      font-size: 1.4rem;
+      font-weight: 800
+    }
+
+    .stat-label {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: .78rem
+    }
+
+    .stat-val.green {
+      color: var(--green)
+    }
+
+    .stat-val.yellow {
+      color: var(--yellow)
+    }
+
+    .stat-val.red {
+      color: var(--red)
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .84rem
+    }
+
+    th,
+    td {
+      padding: 8px 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--border)
+    }
+
+    th {
+      background: var(--surface2);
+      color: var(--muted);
+      font-size: .78rem;
+      font-weight: 700;
+      position: sticky;
+      top: 0;
+      z-index: 1
+    }
+
+    .tbl-wrap {
+      max-height: 320px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      margin-bottom: 14px
+    }
+
+    .cell-clip {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+
+    .empty-cell {
+      color: var(--muted);
+      text-align: center;
+      padding: 24px !important
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: .72rem;
+      font-weight: 700
+    }
+
+    .tag-new {
+      background: var(--green-bg);
+      color: var(--green)
+    }
+
+    .tag-exist {
+      background: rgba(108, 140, 255, .12);
+      color: var(--accent)
+    }
+
+    .tag-plus {
+      background: rgba(251, 191, 36, .12);
+      color: var(--yellow)
+    }
+
+    .tag-warn {
+      background: rgba(248, 113, 113, .12);
+      color: var(--red)
+    }
+
+    .tag-muted {
+      background: rgba(139, 143, 163, .12);
+      color: var(--muted)
+    }
+
+    .msg {
+      padding: 12px;
+      border-radius: var(--r);
+      margin-bottom: 12px;
+      font-size: .85rem;
+      display: none
+    }
+
+    .msg.show {
+      display: block
+    }
+
+    .msg.ok {
+      background: var(--green-bg);
+      color: var(--green)
+    }
+
+    .msg.err {
+      background: var(--red-bg);
+      color: var(--red)
+    }
+
+    .info-box {
+      margin-bottom: 14px;
+      padding: 12px;
+      border-left: 3px solid var(--accent);
+      background: rgba(108, 140, 255, .06);
+      border-radius: 0 var(--r) var(--r) 0;
+      font-size: .85rem;
+      color: var(--muted);
+      line-height: 1.5
+    }
+
+    .info-box strong {
+      color: var(--text);
+      display: block;
+      margin-bottom: 4px
+    }
+
+    .info-box a {
+      color: var(--accent)
+    }
+
+    .hidden {
+      display: none !important
+    }
+
+    .del-btn {
+      background: none;
+      border: none;
+      color: var(--red);
+      cursor: pointer;
+      font-size: .8rem;
+      opacity: .5;
+      transition: .15s
+    }
+
+    .del-btn:hover {
+      opacity: 1
+    }
+
+    .drop-zone {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 80px;
+      border: 2px dashed var(--border);
+      border-radius: var(--r);
+      background: var(--surface2);
+      cursor: pointer;
+      transition: .15s;
+      margin-bottom: 14px;
+      color: var(--muted);
+      font-size: .88rem
+    }
+
+    .drop-zone:hover,
+    .drop-zone.drag {
+      border-color: var(--accent);
+      background: rgba(108, 140, 255, .06)
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+
+    <header>
+      <h1>⚡ 9router Import Tool</h1>
+      <p>Import ChatGPT sessions trực tiếp vào 9router SQLite</p>
+    </header>
+
+    <div class="status-bar offline" id="status-bar">
+      <span class="dot"></span>
+      <span id="status-text">Đang kết nối...</span>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="import">Import Session</button>
+      <button class="tab-btn" data-tab="accounts">Tài khoản hiện có</button>
+      <button class="tab-btn" data-tab="cliproxy">CLIProxy</button>
+      <button class="tab-btn" data-tab="file">Import từ file</button>
+    </div>
+
+    <!-- TAB 1: Import Session -->
+    <section class="tab-content" id="tab-import">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Dán Session ChatGPT</h2>
+          <p>Lấy từ <code>chatgpt.com/api/auth/session</code> — hỗ trợ 1 hoặc nhiều session</p>
+        </div>
+        <div class="panel-body">
+          <div class="info-box">
+            <strong>Cách lấy session</strong>
+            Đăng nhập ChatGPT → mở <a href="https://chatgpt.com/api/auth/session"
+              target="_blank">chatgpt.com/api/auth/session</a> → copy JSON → dán vào đây.
+          </div>
+          <div class="actions">
+            <button class="btn btn-ghost" id="btn-clear">Xóa</button>
+          </div>
+          <textarea id="session-input" spellcheck="false"
+            placeholder='Dán JSON session ở đây...&#10;&#10;{"user":{"email":"you@gmail.com"},"accessToken":"eyJ...","expires":"2026-..."}'></textarea>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-val green" id="s-parsed">0</div>
+          <div class="stat-label">Đã parse</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val yellow" id="s-skip">0</div>
+          <div class="stat-label">Thiếu refresh</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val" id="s-err">0</div>
+          <div class="stat-label">Lỗi</div>
+        </div>
+      </div>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Email</th>
+              <th>Plan</th>
+              <th>Refresh</th>
+              <th>Hết hạn</th>
+            </tr>
+          </thead>
+          <tbody id="preview-body">
+            <tr>
+              <td colspan="5" class="empty-cell">Chưa có session.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="msg" id="import-msg"></div>
+
+      <button class="btn btn-primary btn-block" id="btn-import" disabled>
+        ⚡ Import vào 9router
+      </button>
+      <div style="height:8px"></div>
+      <button class="btn btn-ghost btn-block" id="btn-import-cliproxy" disabled>
+        Import vào cliproxy
+      </button>
+      <div style="height:8px"></div>
+      <button class="btn btn-ghost btn-block" id="btn-download" disabled>
+        ⬇ Tải xuống JSON (nếu server offline)
+      </button>
+    </section>
+
+    <!-- TAB 2: Accounts -->
+    <section class="tab-content hidden" id="tab-accounts">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Codex accounts trong 9router</h2>
+          <p>Danh sách accounts đang có trong SQLite database</p>
+        </div>
+        <div class="panel-body">
+          <div class="actions">
+            <button class="btn btn-ghost" id="btn-refresh" title="Tai lai danh sach account 9router">Refresh</button>
+            <button class="btn btn-ghost" id="btn-repair" title="Sua alias gpt-5.5 va Codex config khi Codex bi loi model/provider">Sua alias/config</button>
+            <button class="btn btn-ghost" id="btn-import-from-cliproxy" title="Lay refresh token/account da co trong CLIProxy runtime-auths de nap vao 9router">Nap CLIProxy -> 9router</button>
+            <button class="btn btn-ghost" id="btn-import-codex-auth" title="Lay token cua Codex Desktop/CLI hien dang login de nap vao 9router">Nap Codex auth -> 9router</button>
+            <button class="btn btn-ghost" id="btn-sync-cliproxy" title="Ghi account tu 9router sang CLIProxy runtime-auths sau khi 9router da refresh OK">Ghi 9router -> CLIProxy</button>
+            <button class="btn btn-ghost" id="btn-export-secrets" title="Xuat JSON co token de backup thu cong tren may nay">Export JSON</button>
+          </div>
+          <div class="msg" id="acc-msg"></div>
+          <div id="acc-count" style="color:var(--muted);font-size:.85rem;margin-bottom:10px"></div>
+          <div class="tbl-wrap" style="max-height:500px">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Email</th>
+                  <th>Plan</th>
+                  <th>Refresh</th>
+                  <th>Hết hạn</th>
+                  <th>Trạng thái</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="acc-body">
+                <tr>
+                  <td colspan="7" class="empty-cell">Đang tải...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: CLIProxy -->
+    <section class="tab-content hidden" id="tab-cliproxy">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>CLIProxy accounts</h2>
+          <p>Runtime auths trong D:\CLIProxyAPI\runtime-auths</p>
+        </div>
+        <div class="panel-body">
+          <div class="actions">
+            <button class="btn btn-ghost" id="btn-clip-refresh" title="Tai lai danh sach file auth trong CLIProxy">Refresh</button>
+            <button class="btn btn-ghost" id="btn-clip-sync" title="Ghi account tu 9router sang CLIProxy runtime-auths">Ghi 9router -> CLIProxy</button>
+            <button class="btn btn-ghost" id="btn-clip-quarantine" title="Di chuyen file CLIProxy khong con nam trong 9router ra backup/quarantine">Quarantine stale</button>
+          </div>
+          <div class="msg" id="clip-msg"></div>
+          <div id="clip-count" style="color:var(--muted);font-size:.85rem;margin-bottom:10px"></div>
+          <div class="tbl-wrap" style="max-height:500px">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Email</th>
+                  <th>Nguồn</th>
+                  <th>Refresh</th>
+                  <th>Hết hạn</th>
+                  <th>File</th>
+                </tr>
+              </thead>
+              <tbody id="clip-body">
+                <tr>
+                  <td colspan="6" class="empty-cell">Đang tải...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: Import from file -->
+    <section class="tab-content hidden" id="tab-file">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Import từ file JSON</h2>
+          <p>Kéo thả file JSON (export từ tool HTML cũ hoặc backup 9router)</p>
+        </div>
+        <div class="panel-body">
+          <input type="file" id="file-input" accept=".json" class="hidden" multiple />
+          <div class="drop-zone" id="drop-zone">📂 Kéo thả hoặc click để chọn file JSON</div>
+          <div class="tbl-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Email</th>
+                  <th>Plan</th>
+                  <th>Refresh</th>
+                  <th>Hết hạn</th>
+                </tr>
+              </thead>
+              <tbody id="file-body">
+                <tr>
+                  <td colspan="5" class="empty-cell">Chưa chọn file.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="msg" id="file-msg"></div>
+          <button class="btn btn-primary btn-block" id="btn-file-import" disabled>⚡ Import vào 9router</button>
+          <div style="height:8px"></div>
+          <button class="btn btn-ghost btn-block" id="btn-file-import-cliproxy" disabled>Import vào cliproxy</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    (() => {
+      'use strict';
+      const API = location.protocol === 'http:' || location.protocol === 'https:' ? location.origin : 'http://127.0.0.1:9876';
+      const $ = id => document.getElementById(id);
+      let serverOnline = false;
+      let healthFailures = 0;
+
+      // === JWT decode ===
+      function b64d(s) { const n = s.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(s.length / 4) * 4, '='); return new TextDecoder().decode(Uint8Array.from(atob(n), c => c.charCodeAt(0))) }
+      function jwtP(t) { if (!t || typeof t !== 'string') return null; const p = t.split('.'); if (p.length < 2) return null; try { return JSON.parse(b64d(p[1])) } catch { return null } }
+      function esc(v) { return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }
+      function fmtDate(v) { if (!v) return '-'; const d = new Date(v); if (isNaN(d)) return String(v); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}` }
+      function getRefreshToken(c) { return c?.refreshToken || c?.refresh_token || c?.data?.refreshToken || '' }
+      function getTokenStatus(c) { return c?.tokenStatus || c?.data?.tokenStatus || null }
+      function refreshBadge(c, index = null) {
+        const status = getTokenStatus(c);
+        const has = status ? status.hasRefreshToken : !!getRefreshToken(c);
+        if (has) return '<span class="tag tag-new">refresh OK</span>';
+        const hint = Number.isInteger(index) ? refreshHints[index] : null;
+        if (hint?.willHaveRefresh) {
+          return `<span class="tag tag-new" title="Import vao 9router se lay refresh token tu ${esc(hint.source)}">fill: ${esc(hint.source)}</span>`;
+        }
+        return '<span class="tag tag-warn">access only</span>';
+      }
+      function importSummary(d) {
+        const s = d.tokenSummary || {};
+        const aliasText = d.aliasRepair?.changed ? 'Alias gpt-5.5 đã được sửa.' : 'Alias gpt-5.5 OK.';
+        return `✅ Import thành công. Thêm mới: ${d.inserted || 0}, update: ${d.updated ?? d.replaced ?? 0}. Refresh token: mới ${s.providedRefresh || 0}, giữ cũ ${s.preservedRefresh || 0}, tự bổ sung ${s.hydratedRefresh || 0}, thiếu ${s.missingRefresh || 0}, bỏ sessionToken sai: ${s.rejectedSessionToken || 0}. ${aliasText}`;
+      }
+      function cliproxySummary(d) {
+        return `✅ Cliproxy OK. Thêm mới: ${d.inserted || 0}, update: ${d.updated || 0}, thiếu refresh: ${d.missingRefresh || 0}. Backup: ${d.backup || 'không có file cũ'}`;
+      }
+      function saveJson(data, filename) {
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
+
+      // === Health check ===
+      async function checkHealth() {
+        let ok = false;
+        try {
+          const r = await fetch(API + '/api/health', { cache: 'no-store', signal: AbortSignal.timeout(4000) });
+          const d = await r.json();
+          ok = r.ok && !!d.ok;
+        } catch { ok = false }
+        if (ok) {
+          healthFailures = 0;
+          serverOnline = true;
+        } else {
+          healthFailures += 1;
+          if (!serverOnline || healthFailures >= 2) serverOnline = false;
+        }
+        const bar = $('status-bar'), txt = $('status-text');
+        bar.className = 'status-bar ' + (serverOnline ? 'online' : 'offline');
+        txt.textContent = serverOnline ? 'Server đang chạy — sẵn sàng import' : 'Server offline — chỉ có thể tải JSON';
+        $('btn-import').textContent = serverOnline ? '⚡ Import vào 9router' : '⚡ Import vào 9router (cần server)';
+        renderPreview();
+        if (serverOnline && parsed.length) loadRefreshHints();
+      }
+      checkHealth();
+      setInterval(checkHealth, 7000);
+
+      // === Parse sessions ===
+      function parseSession(obj) {
+        const at = obj.accessToken || obj.access_token || obj.token?.accessToken || '';
+        if (!at) return null;
+        const p = jwtP(at);
+        const auth = p?.['https://api.openai.com/auth'] || {};
+        const prof = p?.['https://api.openai.com/profile'] || {};
+        const email = obj.user?.email || obj.email || prof.email || p?.email || null;
+        const accountId = obj.account?.id || obj.account_id || obj.providerSpecificData?.chatgptAccountId || auth.chatgpt_account_id || crypto.randomUUID();
+        const planType = obj.account?.planType || obj.providerSpecificData?.chatgptPlanType || auth.chatgpt_plan_type || null;
+        const refreshToken = obj.refreshToken || obj.refresh_token || '';
+        const expiresAt = p?.exp ? new Date(p.exp * 1000).toISOString() : (obj.expires || obj.expiresAt || obj.expired || null);
+        const now = new Date().toISOString();
+        return {
+          accessToken: at,
+          refreshToken,
+          expiresAt,
+          idToken: obj.idToken || obj.id_token || '',
+          testStatus: 'active',
+          expiresIn: expiresAt ? Math.max(0, Math.floor((new Date(expiresAt) - Date.now()) / 1000)) : 0,
+          providerSpecificData: { chatgptAccountId: accountId, chatgptPlanType: planType },
+          lastUsedAt: now, consecutiveUseCount: 0, backoffLevel: 0,
+          id: accountId, provider: 'codex', authType: 'oauth',
+          name: email || 'ChatGPT Account', email: email || '',
+          priority: 1, isActive: true, createdAt: now, updatedAt: now,
+          _plan: planType, _expires: expiresAt, _hasRefresh: !!refreshToken
+        };
+      }
+
+      function collectSessions(val) {
+        const found = [];
+        function walk(v) {
+          if (!v || typeof v !== 'object') return;
+          if (Array.isArray(v)) { v.forEach(walk); return }
+          const at = v.accessToken || v.access_token || v.token?.accessToken;
+          if (at) { const r = parseSession(v); if (r) found.push(r); return }
+          Object.values(v).forEach(walk);
+        }
+        walk(val);
+        return found;
+      }
+
+      // === Tab 1: Import Session ===
+      let parsed = [];
+      let refreshHints = [];
+      let refreshHintSeq = 0;
+      const input = $('session-input');
+
+      async function loadRefreshHints() {
+        const seq = ++refreshHintSeq;
+        refreshHints = [];
+        if (!serverOnline || !parsed.length) { renderPreview(); return }
+        try {
+          const r = await fetch(API + '/api/refresh-preview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ connections: parsed })
+          });
+          const d = await r.json();
+          if (seq !== refreshHintSeq) return;
+          refreshHints = Array.isArray(d.items) ? d.items : [];
+        } catch {
+          if (seq !== refreshHintSeq) return;
+          refreshHints = [];
+        }
+        renderPreview();
+      }
+
+      function processInput() {
+        const t = input.value.trim();
+        if (!t) { parsed = []; refreshHints = []; renderPreview(); return }
+        try {
+          const val = JSON.parse(t);
+          parsed = collectSessions(val);
+        } catch (e) { parsed = []; $('s-err').textContent = '1'; $('s-err').className = 'stat-val red' }
+        renderPreview();
+        loadRefreshHints();
+      }
+
+      function renderPreview() {
+        $('s-parsed').textContent = parsed.length;
+        $('s-skip').textContent = parsed.filter((c, i) => !getRefreshToken(c) && !refreshHints[i]?.willHaveRefresh).length;
+        if (!parsed.length) $('s-err').textContent = '0';
+        const body = $('preview-body');
+        if (!parsed.length) {
+          body.innerHTML = '<tr><td colspan="5" class="empty-cell">Chưa có session.</td></tr>';
+          $('btn-import').disabled = true; $('btn-import-cliproxy').disabled = true; $('btn-download').disabled = true;
+          return;
+        }
+        body.innerHTML = parsed.map((c, i) => `<tr><td>${i + 1}</td><td><div class="cell-clip" title="${esc(c.email)}">${esc(c.email || '-')}</div></td><td>${c._plan ? `<span class="tag tag-plus">${esc(c._plan)}</span>` : '-'}</td><td>${refreshBadge(c, i)}</td><td>${fmtDate(c._expires)}</td></tr>`).join('');
+        $('btn-import').disabled = !serverOnline;
+        $('btn-import-cliproxy').disabled = !serverOnline;
+        $('btn-download').disabled = false;
+      }
+
+      input.addEventListener('input', processInput);
+      $('btn-clear').addEventListener('click', () => { input.value = ''; parsed = []; refreshHints = []; refreshHintSeq++; renderPreview(); hideMsg('import-msg') });
+
+      // Import button
+      $('btn-import').addEventListener('click', async () => {
+        if (!parsed.length || !serverOnline) return;
+        $('btn-import').disabled = true;
+        $('btn-import').textContent = 'Đang import...';
+        try {
+          const r = await fetch(API + '/api/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ connections: parsed }) });
+          const d = await r.json();
+          if (d.error) { showMsg('import-msg', d.error, 'err'); }
+          else { showMsg('import-msg', importSummary(d), 'ok'); }
+        } catch (e) { showMsg('import-msg', 'Lỗi kết nối server: ' + e.message, 'err') }
+        $('btn-import').disabled = false;
+        $('btn-import').textContent = '⚡ Import vào 9router';
+        loadAccounts();
+      });
+      $('btn-import-cliproxy').addEventListener('click', async () => {
+        if (!parsed.length || !serverOnline) return;
+        $('btn-import-cliproxy').disabled = true;
+        $('btn-import-cliproxy').textContent = 'Đang import cliproxy...';
+        try {
+          const r = await fetch(API + '/api/import-cliproxy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ connections: parsed }) });
+          const d = await r.json();
+          if (d.error || d.ok === false) showMsg('import-msg', d.error || (d.errors || []).join('; '), 'err');
+          else showMsg('import-msg', cliproxySummary(d), 'ok');
+        } catch (e) { showMsg('import-msg', 'Lỗi cliproxy: ' + e.message, 'err') }
+        $('btn-import-cliproxy').disabled = false;
+        $('btn-import-cliproxy').textContent = 'Import vào cliproxy';
+      });
+
+      // Download fallback
+      $('btn-download').addEventListener('click', () => {
+        if (!parsed.length) return;
+        const data = { generatedAt: new Date().toISOString(), modelAliases: { 'gpt-5.5': 'cx/gpt-5.5' }, providerConnections: parsed.map((c, i) => { const o = { ...c }; delete o._plan; delete o._expires; delete o._hasRefresh; o.priority = i + 1; return o }) };
+        const email = parsed[0]?.email || 'session';
+        saveJson(data, email.replace(/[^a-z0-9@._-]/gi, '') + '.9router-codex.json');
+      });
+
+      // === Tab 2: Accounts ===
+      async function loadAccounts() {
+        if (!serverOnline) { $('acc-body').innerHTML = '<tr><td colspan="7" class="empty-cell">Server offline</td></tr>'; $('acc-count').textContent = ''; return }
+        try {
+          const r = await fetch(API + '/api/connections');
+          const d = await r.json();
+          const conns = d.connections || [];
+          const unique = new Set(conns.map(c => (c.email || c.name || '').toLowerCase()).filter(Boolean)).size;
+          $('acc-count').textContent = unique === conns.length ? `${conns.length} tài khoản` : `${conns.length} dòng, ${unique} email unique`;
+          if (!conns.length) { $('acc-body').innerHTML = '<tr><td colspan="7" class="empty-cell">Chưa có tài khoản nào.</td></tr>'; return }
+          $('acc-body').innerHTML = conns.map((c, i) => {
+            const data = c.data || {};
+            const plan = data.providerSpecificData?.chatgptPlanType || '';
+            const exp = data.expiresAt || '';
+            const status = data.testStatus || 'unknown';
+            const stCls = status === 'active' ? 'green' : status === 'error' ? 'red' : '';
+            return `<tr><td>${c.priority || i + 1}</td><td><div class="cell-clip" title="${esc(c.email)}">${esc(c.email || c.name || '-')}</div></td><td>${plan ? `<span class="tag tag-plus">${esc(plan)}</span>` : '-'}</td><td>${refreshBadge(c)}</td><td>${fmtDate(exp)}</td><td><span style="color:var(--${stCls || 'muted'})">${esc(status)}</span></td><td><button class="del-btn" onclick="delConn('${esc(c.id)}')">✕</button></td></tr>`
+          }).join('');
+        } catch { $('acc-body').innerHTML = '<tr><td colspan="7" class="empty-cell">Lỗi kết nối</td></tr>' }
+      }
+
+      window.delConn = async function (id) {
+        if (!confirm('Xóa tài khoản này?')) return;
+        try { await fetch(API + '/api/connections/' + id, { method: 'DELETE' }); loadAccounts() } catch { }
+      };
+
+      $('btn-refresh').addEventListener('click', loadAccounts);
+      $('btn-import-from-cliproxy').addEventListener('click', async () => {
+        if (!serverOnline) return;
+        if (!confirm('Nap Codex runtime-auths tu CLIProxy vao 9router. Tool se backup 9router SQLite truoc khi ghi.')) return;
+        $('btn-import-from-cliproxy').disabled = true;
+        try {
+          const r = await fetch(API + '/api/import-from-cliproxy', { method: 'POST' });
+          const d = await r.json();
+          if (d.error || d.ok === false) showMsg('acc-msg', d.error || (d.errors || []).join('; '), 'err');
+          else showMsg('acc-msg', importSummary(d), 'ok');
+        } catch (e) { showMsg('acc-msg', 'Loi import tu cliproxy: ' + e.message, 'err') }
+        $('btn-import-from-cliproxy').disabled = false;
+        loadAccounts();
+      });
+      $('btn-import-codex-auth').addEventListener('click', async () => {
+        if (!serverOnline) return;
+        if (!confirm('Nap C:\\Users\\lequa\\.codex\\auth.json vao 9router. Tool se backup 9router SQLite truoc khi ghi.')) return;
+        $('btn-import-codex-auth').disabled = true;
+        try {
+          const r = await fetch(API + '/api/import-codex-auth', { method: 'POST' });
+          const d = await r.json();
+          if (d.error || d.ok === false) showMsg('acc-msg', d.error || (d.errors || []).join('; '), 'err');
+          else showMsg('acc-msg', importSummary(d), 'ok');
+        } catch (e) { showMsg('acc-msg', 'Loi import Codex auth: ' + e.message, 'err') }
+        $('btn-import-codex-auth').disabled = false;
+        loadAccounts();
+      });
+      $('btn-sync-cliproxy').addEventListener('click', async () => {
+        if (!serverOnline) return;
+        if (!confirm('Ghi toan bo Codex account tu 9router sang CLIProxy. Tool se backup D:\\CLIProxyAPI\\runtime-auths truoc khi ghi.')) return;
+        $('btn-sync-cliproxy').disabled = true;
+        try {
+          const r = await fetch(API + '/api/sync-cliproxy-from-9router', { method: 'POST' });
+          const d = await r.json();
+          if (d.error || d.ok === false) showMsg('acc-msg', d.error || (d.errors || []).join('; '), 'err');
+          else showMsg('acc-msg', cliproxySummary(d), 'ok');
+        } catch (e) { showMsg('acc-msg', 'Lỗi sync cliproxy: ' + e.message, 'err') }
+        $('btn-sync-cliproxy').disabled = false;
+      });
+      $('btn-repair').addEventListener('click', async () => {
+        if (!serverOnline) return;
+        $('btn-repair').disabled = true;
+        try {
+          const r = await fetch(API + '/api/repair', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ codexConfig: true }) });
+          const d = await r.json();
+          if (d.error) showMsg('acc-msg', d.error, 'err');
+          else showMsg('acc-msg', `Đã sửa alias gpt-5.5 -> cx/gpt-5.5 và Codex config. Backup: ${d.codexConfig?.backup || 'không cần đổi'}`, 'ok');
+        } catch (e) { showMsg('acc-msg', 'Lỗi repair: ' + e.message, 'err') }
+        $('btn-repair').disabled = false;
+        loadAccounts();
+      });
+      $('btn-export-secrets').addEventListener('click', async () => {
+        if (!serverOnline) return;
+        if (!confirm('Export JSON có access/refresh token. Chỉ dùng trên máy của bạn và không chia sẻ file này.')) return;
+        try {
+          const r = await fetch(API + '/api/export?secrets=1');
+          const d = await r.json();
+          saveJson(d, '9router-codex-export-' + new Date().toISOString().replace(/[:.]/g, '-') + '.json');
+          showMsg('acc-msg', 'Đã export JSON có token để bạn dùng thủ công.', 'ok');
+        } catch (e) { showMsg('acc-msg', 'Lỗi export: ' + e.message, 'err') }
+      });
+
+      // === Tab 3: CLIProxy ===
+      function sourceBadge(c) {
+        if (c.stale) return '<span class="tag tag-warn">stale</span>';
+        if (c.in9router) return '<span class="tag tag-new">9router</span>';
+        return '<span class="tag">unknown</span>';
+      }
+
+      async function loadCliproxyAccounts() {
+        if (!serverOnline) {
+          $('clip-body').innerHTML = '<tr><td colspan="6" class="empty-cell">Server offline</td></tr>';
+          $('clip-count').textContent = '';
+          return;
+        }
+        try {
+          const r = await fetch(API + '/api/cliproxy/accounts', { cache: 'no-store' });
+          const d = await r.json();
+          const accounts = d.accounts || [];
+          const stale = accounts.filter(c => c.stale).length;
+          const missingRefresh = accounts.filter(c => !(c.tokenStatus || {}).hasRefreshToken).length;
+          $('clip-count').textContent = `${accounts.length} file auth, stale: ${stale}, thiếu refresh: ${missingRefresh}`;
+          if (!accounts.length) {
+            $('clip-body').innerHTML = '<tr><td colspan="6" class="empty-cell">Chưa có CLIProxy auth.</td></tr>';
+            return;
+          }
+          $('clip-body').innerHTML = accounts.map((c, i) => {
+            const title = c.error ? ` title="${esc(c.error)}"` : '';
+            return `<tr${title}><td>${i + 1}</td><td><div class="cell-clip" title="${esc(c.email)}">${esc(c.email || '-')}</div></td><td>${sourceBadge(c)}</td><td>${refreshBadge(c)}</td><td>${fmtDate(c.expired)}</td><td><div class="cell-clip" title="${esc(c.file)}">${esc(c.file || '-')}</div></td></tr>`;
+          }).join('');
+        } catch (e) {
+          $('clip-body').innerHTML = '<tr><td colspan="6" class="empty-cell">Lỗi kết nối</td></tr>';
+          $('clip-count').textContent = '';
+        }
+      }
+
+      $('btn-clip-refresh').addEventListener('click', loadCliproxyAccounts);
+      $('btn-clip-sync').addEventListener('click', async () => {
+        if (!serverOnline) return;
+        if (!confirm('Ghi toan bo Codex account tu 9router sang CLIProxy. Tool se backup runtime-auths truoc khi ghi.')) return;
+        $('btn-clip-sync').disabled = true;
+        try {
+          const r = await fetch(API + '/api/sync-cliproxy-from-9router', { method: 'POST' });
+          const d = await r.json();
+          if (d.error || d.ok === false) showMsg('clip-msg', d.error || (d.errors || []).join('; '), 'err');
+          else showMsg('clip-msg', cliproxySummary(d), 'ok');
+          loadCliproxyAccounts();
+        } catch (e) { showMsg('clip-msg', 'Lỗi sync cliproxy: ' + e.message, 'err') }
+        $('btn-clip-sync').disabled = false;
+      });
+      $('btn-clip-quarantine').addEventListener('click', async () => {
+        if (!serverOnline) return;
+        if (!confirm('Di chuyển các CLIProxy auth stale ra thư mục quarantine có backup. Không xóa vĩnh viễn, nhưng CLIProxy sẽ không dùng các file này nữa.')) return;
+        $('btn-clip-quarantine').disabled = true;
+        try {
+          const r = await fetch(API + '/api/cliproxy/quarantine-stale', { method: 'POST' });
+          const d = await r.json();
+          if (d.error || d.ok === false) showMsg('clip-msg', d.error || (d.errors || []).join('; '), 'err');
+          else showMsg('clip-msg', `Đã quarantine ${d.moved || 0} file stale. Backup: ${d.backup || 'không cần'}`, 'ok');
+          loadCliproxyAccounts();
+        } catch (e) { showMsg('clip-msg', 'Lỗi quarantine: ' + e.message, 'err') }
+        $('btn-clip-quarantine').disabled = false;
+      });
+
+      // === Tab 4: File import ===
+      let fileConns = [];
+      const dropZone = $('drop-zone');
+      const fileInput = $('file-input');
+
+      function parseRawConnections(raw) {
+        if (raw.providerConnections) return raw.providerConnections.filter(c => c.provider === 'codex');
+        if (Array.isArray(raw)) return raw.filter(c => c.provider === 'codex' || c.type === 'codex' || c.accessToken || c.access_token);
+        if (raw.provider === 'codex' || raw.type === 'codex' || raw.accessToken || raw.access_token) return [raw];
+        return collectSessions(raw);
+      }
+
+      async function handleFiles(files) {
+        try {
+          const all = [];
+          for (const file of Array.from(files || [])) {
+            const raw = JSON.parse(await file.text());
+            all.push(...parseRawConnections(raw));
+          }
+          fileConns = all;
+          dropZone.textContent = `✅ ${files.length} file — ${all.length} codex connections`;
+          dropZone.style.borderColor = 'var(--green)';
+          renderFilePreview();
+        } catch (err) {
+          dropZone.textContent = '❌ ' + err.message;
+          dropZone.style.borderColor = 'var(--red)';
+          fileConns = [];
+          renderFilePreview();
+        }
+      }
+
+      function renderFilePreview() {
+        const body = $('file-body');
+        if (!fileConns.length) { body.innerHTML = '<tr><td colspan="5" class="empty-cell">Không tìm thấy connections.</td></tr>'; $('btn-file-import').disabled = true; $('btn-file-import-cliproxy').disabled = true; return }
+        body.innerHTML = fileConns.map((c, i) => {
+          const plan = c.providerSpecificData?.chatgptPlanType || c.data?.providerSpecificData?.chatgptPlanType || '';
+          const exp = c.expiresAt || c.data?.expiresAt || '';
+          return `<tr><td>${i + 1}</td><td><div class="cell-clip">${esc(c.email || c.name || '-')}</div></td><td>${plan ? `<span class="tag tag-plus">${esc(plan)}</span>` : '-'}</td><td>${refreshBadge(c)}</td><td>${fmtDate(exp)}</td></tr>`
+        }).join('');
+        $('btn-file-import').disabled = !serverOnline;
+        $('btn-file-import-cliproxy').disabled = !serverOnline;
+      }
+
+      dropZone.addEventListener('click', () => fileInput.click());
+      dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag') });
+      dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+      dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag'); if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files) });
+      fileInput.addEventListener('change', e => { if (e.target.files.length) handleFiles(e.target.files); e.target.value = '' });
+
+      $('btn-file-import').addEventListener('click', async () => {
+        if (!fileConns.length || !serverOnline) return;
+        $('btn-file-import').disabled = true;
+        $('btn-file-import').textContent = 'Đang import...';
+        try {
+          const r = await fetch(API + '/api/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ connections: fileConns }) });
+          const d = await r.json();
+          if (d.error) showMsg('file-msg', d.error, 'err');
+          else showMsg('file-msg', importSummary(d), 'ok');
+        } catch (e) { showMsg('file-msg', 'Lỗi: ' + e.message, 'err') }
+        $('btn-file-import').disabled = false;
+        $('btn-file-import').textContent = '⚡ Import vào 9router';
+        loadAccounts();
+      });
+      $('btn-file-import-cliproxy').addEventListener('click', async () => {
+        if (!fileConns.length || !serverOnline) return;
+        $('btn-file-import-cliproxy').disabled = true;
+        $('btn-file-import-cliproxy').textContent = 'Đang import cliproxy...';
+        try {
+          const r = await fetch(API + '/api/import-cliproxy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ connections: fileConns }) });
+          const d = await r.json();
+          if (d.error || d.ok === false) showMsg('file-msg', d.error || (d.errors || []).join('; '), 'err');
+          else showMsg('file-msg', cliproxySummary(d), 'ok');
+        } catch (e) { showMsg('file-msg', 'Lỗi cliproxy: ' + e.message, 'err') }
+        $('btn-file-import-cliproxy').disabled = false;
+        $('btn-file-import-cliproxy').textContent = 'Import vào cliproxy';
+      });
+
+      // === Helpers ===
+      function showMsg(id, text, type) { const el = $(id); el.textContent = text; el.className = 'msg show ' + type }
+      function hideMsg(id) { $(id).className = 'msg' }
+
+      // === Tabs ===
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+          btn.classList.add('active');
+          $('tab-' + btn.dataset.tab).classList.remove('hidden');
+          if (btn.dataset.tab === 'accounts') loadAccounts();
+          if (btn.dataset.tab === 'cliproxy') loadCliproxyAccounts();
+        });
+      });
+
+    })();
+  </script>
+</body>
+
+</html>

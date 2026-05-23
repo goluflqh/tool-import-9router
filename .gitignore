@@ -1,0 +1,12 @@
+backups/
+__pycache__/
+*.py[cod]
+*.bak*
+*.sqlite
+*.db
+*.json
+!package.json
+!tsconfig.json
+*.9router-codex.json
+9router-codex-export-*.json
+runtime-auths/
