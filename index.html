@@ -525,7 +525,7 @@
             <tr>
               <th>#</th>
               <th>Email</th>
-              <th>Plan</th>
+              <th>Gói</th>
               <th>Refresh</th>
               <th>Hết hạn</th>
             </tr>
@@ -541,11 +541,11 @@
       <div class="msg" id="import-msg"></div>
 
       <button class="btn btn-primary btn-block" id="btn-import" disabled>
-        ⚡ Import vào 9router
+        Import vào 9router
       </button>
       <div style="height:8px"></div>
       <button class="btn btn-ghost btn-block" id="btn-import-cliproxy" disabled>
-        Import vào cliproxy
+        Import vào CLIProxy
       </button>
       <div style="height:8px"></div>
       <button class="btn btn-ghost btn-block" id="btn-download" disabled>
@@ -562,12 +562,12 @@
         </div>
         <div class="panel-body">
           <div class="actions">
-            <button class="btn btn-ghost" id="btn-refresh" title="Tai lai danh sach account 9router">Refresh</button>
-            <button class="btn btn-ghost" id="btn-repair" title="Sua alias gpt-5.5 va Codex config khi Codex bi loi model/provider">Sua alias/config</button>
-            <button class="btn btn-ghost" id="btn-import-from-cliproxy" title="Lay refresh token/account da co trong CLIProxy runtime-auths de nap vao 9router">Nap CLIProxy -> 9router</button>
-            <button class="btn btn-ghost" id="btn-import-codex-auth" title="Lay token cua Codex Desktop/CLI hien dang login de nap vao 9router">Nap Codex auth -> 9router</button>
-            <button class="btn btn-ghost" id="btn-sync-cliproxy" title="Ghi account tu 9router sang CLIProxy runtime-auths sau khi 9router da refresh OK">Ghi 9router -> CLIProxy</button>
-            <button class="btn btn-ghost" id="btn-export-secrets" title="Xuat JSON co token de backup thu cong tren may nay">Export JSON</button>
+            <button class="btn btn-ghost" id="btn-refresh" title="Tải lại danh sách account trong 9router">Refresh</button>
+            <button class="btn btn-ghost" id="btn-repair" title="Sửa alias gpt-5.5 và cấu hình Codex khi lỗi model/provider">Sửa cấu hình</button>
+            <button class="btn btn-ghost" id="btn-import-from-cliproxy" title="Lấy account/refresh token đang có trong CLIProxy để nạp vào 9router">Nạp từ CLIProxy</button>
+            <button class="btn btn-ghost" id="btn-import-codex-auth" title="Lấy token của Codex Desktop/CLI đang đăng nhập để nạp vào 9router">Nạp từ Codex</button>
+            <button class="btn btn-ghost" id="btn-sync-cliproxy" title="Ghi account từ 9router sang CLIProxy sau khi 9router đã refresh OK">Ghi sang CLIProxy</button>
+            <button class="btn btn-ghost" id="btn-export-secrets" title="Xuất JSON có token để backup thủ công trên máy này">Export JSON</button>
           </div>
           <div class="msg" id="acc-msg"></div>
           <div id="acc-count" style="color:var(--muted);font-size:.85rem;margin-bottom:10px"></div>
@@ -577,7 +577,7 @@
                 <tr>
                   <th>#</th>
                   <th>Email</th>
-                  <th>Plan</th>
+                  <th>Gói</th>
                   <th>Refresh</th>
                   <th>Hết hạn</th>
                   <th>Trạng thái</th>
@@ -604,9 +604,9 @@
         </div>
         <div class="panel-body">
           <div class="actions">
-            <button class="btn btn-ghost" id="btn-clip-refresh" title="Tai lai danh sach file auth trong CLIProxy">Refresh</button>
-            <button class="btn btn-ghost" id="btn-clip-sync" title="Ghi account tu 9router sang CLIProxy runtime-auths">Ghi 9router -> CLIProxy</button>
-            <button class="btn btn-ghost" id="btn-clip-quarantine" title="Di chuyen file CLIProxy khong con nam trong 9router ra backup/quarantine">Quarantine stale</button>
+            <button class="btn btn-ghost" id="btn-clip-refresh" title="Tải lại danh sách file auth trong CLIProxy">Refresh</button>
+            <button class="btn btn-ghost" id="btn-clip-sync" title="Ghi account từ 9router sang CLIProxy runtime-auths">Ghi từ 9router</button>
+            <button class="btn btn-ghost" id="btn-clip-quarantine" title="Di chuyển file CLIProxy không còn trong 9router ra backup/quarantine">Cách ly file cũ</button>
           </div>
           <div class="msg" id="clip-msg"></div>
           <div id="clip-count" style="color:var(--muted);font-size:.85rem;margin-bottom:10px"></div>
@@ -649,7 +649,7 @@
                 <tr>
                   <th>#</th>
                   <th>Email</th>
-                  <th>Plan</th>
+                  <th>Gói</th>
                   <th>Refresh</th>
                   <th>Hết hạn</th>
                 </tr>
@@ -662,9 +662,9 @@
             </table>
           </div>
           <div class="msg" id="file-msg"></div>
-          <button class="btn btn-primary btn-block" id="btn-file-import" disabled>⚡ Import vào 9router</button>
+          <button class="btn btn-primary btn-block" id="btn-file-import" disabled>Import vào 9router</button>
           <div style="height:8px"></div>
-          <button class="btn btn-ghost btn-block" id="btn-file-import-cliproxy" disabled>Import vào cliproxy</button>
+          <button class="btn btn-ghost btn-block" id="btn-file-import-cliproxy" disabled>Import vào CLIProxy</button>
         </div>
       </div>
     </section>
@@ -692,7 +692,7 @@
         if (has) return '<span class="tag tag-new">refresh OK</span>';
         const hint = Number.isInteger(index) ? refreshHints[index] : null;
         if (hint?.willHaveRefresh) {
-          return `<span class="tag tag-new" title="Import vao 9router se lay refresh token tu ${esc(hint.source)}">fill: ${esc(hint.source)}</span>`;
+          return `<span class="tag tag-new" title="Khi import vào 9router, tool sẽ lấy refresh token từ ${esc(hint.source)}">fill: ${esc(hint.source)}</span>`;
         }
         return '<span class="tag tag-warn">access only</span>';
       }
@@ -731,7 +731,7 @@
         const bar = $('status-bar'), txt = $('status-text');
         bar.className = 'status-bar ' + (serverOnline ? 'online' : 'offline');
         txt.textContent = serverOnline ? 'Server đang chạy — sẵn sàng import' : 'Server offline — chỉ có thể tải JSON';
-        $('btn-import').textContent = serverOnline ? '⚡ Import vào 9router' : '⚡ Import vào 9router (cần server)';
+        $('btn-import').textContent = serverOnline ? 'Import vào 9router' : 'Import vào 9router (cần server)';
         renderPreview();
         if (serverOnline && parsed.length) loadRefreshHints();
       }
@@ -848,21 +848,21 @@
           else { showMsg('import-msg', importSummary(d), 'ok'); }
         } catch (e) { showMsg('import-msg', 'Lỗi kết nối server: ' + e.message, 'err') }
         $('btn-import').disabled = false;
-        $('btn-import').textContent = '⚡ Import vào 9router';
+        $('btn-import').textContent = 'Import vào 9router';
         loadAccounts();
       });
       $('btn-import-cliproxy').addEventListener('click', async () => {
         if (!parsed.length || !serverOnline) return;
         $('btn-import-cliproxy').disabled = true;
-        $('btn-import-cliproxy').textContent = 'Đang import cliproxy...';
+        $('btn-import-cliproxy').textContent = 'Đang import CLIProxy...';
         try {
           const r = await fetch(API + '/api/import-cliproxy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ connections: parsed }) });
           const d = await r.json();
           if (d.error || d.ok === false) showMsg('import-msg', d.error || (d.errors || []).join('; '), 'err');
           else showMsg('import-msg', cliproxySummary(d), 'ok');
-        } catch (e) { showMsg('import-msg', 'Lỗi cliproxy: ' + e.message, 'err') }
+        } catch (e) { showMsg('import-msg', 'Lỗi CLIProxy: ' + e.message, 'err') }
         $('btn-import-cliproxy').disabled = false;
-        $('btn-import-cliproxy').textContent = 'Import vào cliproxy';
+        $('btn-import-cliproxy').textContent = 'Import vào CLIProxy';
       });
 
       // Download fallback
@@ -902,40 +902,40 @@
       $('btn-refresh').addEventListener('click', loadAccounts);
       $('btn-import-from-cliproxy').addEventListener('click', async () => {
         if (!serverOnline) return;
-        if (!confirm('Nap Codex runtime-auths tu CLIProxy vao 9router. Tool se backup 9router SQLite truoc khi ghi.')) return;
+        if (!confirm('Nạp Codex runtime-auths từ CLIProxy vào 9router. Tool sẽ backup 9router SQLite trước khi ghi.')) return;
         $('btn-import-from-cliproxy').disabled = true;
         try {
           const r = await fetch(API + '/api/import-from-cliproxy', { method: 'POST' });
           const d = await r.json();
           if (d.error || d.ok === false) showMsg('acc-msg', d.error || (d.errors || []).join('; '), 'err');
           else showMsg('acc-msg', importSummary(d), 'ok');
-        } catch (e) { showMsg('acc-msg', 'Loi import tu cliproxy: ' + e.message, 'err') }
+        } catch (e) { showMsg('acc-msg', 'Lỗi nạp từ CLIProxy: ' + e.message, 'err') }
         $('btn-import-from-cliproxy').disabled = false;
         loadAccounts();
       });
       $('btn-import-codex-auth').addEventListener('click', async () => {
         if (!serverOnline) return;
-        if (!confirm('Nap C:\\Users\\lequa\\.codex\\auth.json vao 9router. Tool se backup 9router SQLite truoc khi ghi.')) return;
+        if (!confirm('Nạp C:\\Users\\lequa\\.codex\\auth.json vào 9router. Tool sẽ backup 9router SQLite trước khi ghi.')) return;
         $('btn-import-codex-auth').disabled = true;
         try {
           const r = await fetch(API + '/api/import-codex-auth', { method: 'POST' });
           const d = await r.json();
           if (d.error || d.ok === false) showMsg('acc-msg', d.error || (d.errors || []).join('; '), 'err');
           else showMsg('acc-msg', importSummary(d), 'ok');
-        } catch (e) { showMsg('acc-msg', 'Loi import Codex auth: ' + e.message, 'err') }
+        } catch (e) { showMsg('acc-msg', 'Lỗi nạp Codex auth: ' + e.message, 'err') }
         $('btn-import-codex-auth').disabled = false;
         loadAccounts();
       });
       $('btn-sync-cliproxy').addEventListener('click', async () => {
         if (!serverOnline) return;
-        if (!confirm('Ghi toan bo Codex account tu 9router sang CLIProxy. Tool se backup D:\\CLIProxyAPI\\runtime-auths truoc khi ghi.')) return;
+        if (!confirm('Ghi toàn bộ Codex account từ 9router sang CLIProxy. Tool sẽ backup D:\\CLIProxyAPI\\runtime-auths trước khi ghi.')) return;
         $('btn-sync-cliproxy').disabled = true;
         try {
           const r = await fetch(API + '/api/sync-cliproxy-from-9router', { method: 'POST' });
           const d = await r.json();
           if (d.error || d.ok === false) showMsg('acc-msg', d.error || (d.errors || []).join('; '), 'err');
           else showMsg('acc-msg', cliproxySummary(d), 'ok');
-        } catch (e) { showMsg('acc-msg', 'Lỗi sync cliproxy: ' + e.message, 'err') }
+        } catch (e) { showMsg('acc-msg', 'Lỗi ghi sang CLIProxy: ' + e.message, 'err') }
         $('btn-sync-cliproxy').disabled = false;
       });
       $('btn-repair').addEventListener('click', async () => {
@@ -946,7 +946,7 @@
           const d = await r.json();
           if (d.error) showMsg('acc-msg', d.error, 'err');
           else showMsg('acc-msg', `Đã sửa alias gpt-5.5 -> cx/gpt-5.5 và Codex config. Backup: ${d.codexConfig?.backup || 'không cần đổi'}`, 'ok');
-        } catch (e) { showMsg('acc-msg', 'Lỗi repair: ' + e.message, 'err') }
+        } catch (e) { showMsg('acc-msg', 'Lỗi sửa cấu hình: ' + e.message, 'err') }
         $('btn-repair').disabled = false;
         loadAccounts();
       });
@@ -998,7 +998,7 @@
       $('btn-clip-refresh').addEventListener('click', loadCliproxyAccounts);
       $('btn-clip-sync').addEventListener('click', async () => {
         if (!serverOnline) return;
-        if (!confirm('Ghi toan bo Codex account tu 9router sang CLIProxy. Tool se backup runtime-auths truoc khi ghi.')) return;
+        if (!confirm('Ghi toàn bộ Codex account từ 9router sang CLIProxy. Tool sẽ backup runtime-auths trước khi ghi.')) return;
         $('btn-clip-sync').disabled = true;
         try {
           const r = await fetch(API + '/api/sync-cliproxy-from-9router', { method: 'POST' });
@@ -1006,20 +1006,20 @@
           if (d.error || d.ok === false) showMsg('clip-msg', d.error || (d.errors || []).join('; '), 'err');
           else showMsg('clip-msg', cliproxySummary(d), 'ok');
           loadCliproxyAccounts();
-        } catch (e) { showMsg('clip-msg', 'Lỗi sync cliproxy: ' + e.message, 'err') }
+        } catch (e) { showMsg('clip-msg', 'Lỗi ghi sang CLIProxy: ' + e.message, 'err') }
         $('btn-clip-sync').disabled = false;
       });
       $('btn-clip-quarantine').addEventListener('click', async () => {
         if (!serverOnline) return;
-        if (!confirm('Di chuyển các CLIProxy auth stale ra thư mục quarantine có backup. Không xóa vĩnh viễn, nhưng CLIProxy sẽ không dùng các file này nữa.')) return;
+        if (!confirm('Di chuyển các CLIProxy auth cũ ra thư mục quarantine có backup. Không xóa vĩnh viễn, nhưng CLIProxy sẽ không dùng các file này nữa.')) return;
         $('btn-clip-quarantine').disabled = true;
         try {
           const r = await fetch(API + '/api/cliproxy/quarantine-stale', { method: 'POST' });
           const d = await r.json();
           if (d.error || d.ok === false) showMsg('clip-msg', d.error || (d.errors || []).join('; '), 'err');
-          else showMsg('clip-msg', `Đã quarantine ${d.moved || 0} file stale. Backup: ${d.backup || 'không cần'}`, 'ok');
+          else showMsg('clip-msg', `Đã cách ly ${d.moved || 0} file cũ. Backup: ${d.backup || 'không cần'}`, 'ok');
           loadCliproxyAccounts();
-        } catch (e) { showMsg('clip-msg', 'Lỗi quarantine: ' + e.message, 'err') }
+        } catch (e) { showMsg('clip-msg', 'Lỗi cách ly stale: ' + e.message, 'err') }
         $('btn-clip-quarantine').disabled = false;
       });
 
@@ -1083,21 +1083,21 @@
           else showMsg('file-msg', importSummary(d), 'ok');
         } catch (e) { showMsg('file-msg', 'Lỗi: ' + e.message, 'err') }
         $('btn-file-import').disabled = false;
-        $('btn-file-import').textContent = '⚡ Import vào 9router';
+        $('btn-file-import').textContent = 'Import vào 9router';
         loadAccounts();
       });
       $('btn-file-import-cliproxy').addEventListener('click', async () => {
         if (!fileConns.length || !serverOnline) return;
         $('btn-file-import-cliproxy').disabled = true;
-        $('btn-file-import-cliproxy').textContent = 'Đang import cliproxy...';
+        $('btn-file-import-cliproxy').textContent = 'Đang import CLIProxy...';
         try {
           const r = await fetch(API + '/api/import-cliproxy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ connections: fileConns }) });
           const d = await r.json();
           if (d.error || d.ok === false) showMsg('file-msg', d.error || (d.errors || []).join('; '), 'err');
           else showMsg('file-msg', cliproxySummary(d), 'ok');
-        } catch (e) { showMsg('file-msg', 'Lỗi cliproxy: ' + e.message, 'err') }
+        } catch (e) { showMsg('file-msg', 'Lỗi CLIProxy: ' + e.message, 'err') }
         $('btn-file-import-cliproxy').disabled = false;
-        $('btn-file-import-cliproxy').textContent = 'Import vào cliproxy';
+        $('btn-file-import-cliproxy').textContent = 'Import vào CLIProxy';
       });
 
       // === Helpers ===

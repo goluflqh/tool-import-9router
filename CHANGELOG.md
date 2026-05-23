@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.1 - 2026-05-24
+
+- Clarified that free accounts can be added when their token is valid, but model access remains limited by the account plan.
+- Renamed UI actions with clearer Vietnamese labels and accents.
+- Simplified import/sync button wording while preserving the 9router-first workflow.
+
 ## v1.0.0 - 2026-05-24
 
 - Added 9router-first recovery flow for Codex OAuth accounts.
