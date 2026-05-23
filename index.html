@@ -563,6 +563,7 @@
         <div class="panel-body">
           <div class="actions">
             <button class="btn btn-ghost" id="btn-refresh" title="Tải lại danh sách account trong 9router">Refresh</button>
+            <button class="btn btn-ghost" id="btn-dedupe" title="Giữ lại một dòng tốt nhất cho mỗi email và backup SQLite trước khi xóa dòng trùng">Lọc trùng email</button>
             <button class="btn btn-ghost" id="btn-repair" title="Sửa alias gpt-5.5 và cấu hình Codex khi lỗi model/provider">Sửa cấu hình</button>
             <button class="btn btn-ghost" id="btn-import-from-cliproxy" title="Lấy account/refresh token đang có trong CLIProxy để nạp vào 9router">Nạp từ CLIProxy</button>
             <button class="btn btn-ghost" id="btn-import-codex-auth" title="Lấy token của Codex Desktop/CLI đang đăng nhập để nạp vào 9router">Nạp từ Codex</button>
@@ -686,11 +687,11 @@
       function fmtDate(v) { if (!v) return '-'; const d = new Date(v); if (isNaN(d)) return String(v); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}` }
       function getRefreshToken(c) { return c?.refreshToken || c?.refresh_token || c?.data?.refreshToken || '' }
       function getTokenStatus(c) { return c?.tokenStatus || c?.data?.tokenStatus || null }
-      function refreshBadge(c, index = null) {
+      function refreshBadge(c, index = null, hints = refreshHints) {
         const status = getTokenStatus(c);
         const has = status ? status.hasRefreshToken : !!getRefreshToken(c);
         if (has) return '<span class="tag tag-new">refresh OK</span>';
-        const hint = Number.isInteger(index) ? refreshHints[index] : null;
+        const hint = Number.isInteger(index) ? hints[index] : null;
         if (hint?.willHaveRefresh) {
           return `<span class="tag tag-new" title="Khi import vào 9router, tool sẽ lấy refresh token từ ${esc(hint.source)}">fill: ${esc(hint.source)}</span>`;
         }
@@ -734,6 +735,7 @@
         $('btn-import').textContent = serverOnline ? 'Import vào 9router' : 'Import vào 9router (cần server)';
         renderPreview();
         if (serverOnline && parsed.length) loadRefreshHints();
+        if (serverOnline && fileConns.length) loadFileRefreshHints();
       }
       checkHealth();
       setInterval(checkHealth, 7000);
@@ -880,8 +882,11 @@
           const r = await fetch(API + '/api/connections');
           const d = await r.json();
           const conns = d.connections || [];
-          const unique = new Set(conns.map(c => (c.email || c.name || '').toLowerCase()).filter(Boolean)).size;
-          $('acc-count').textContent = unique === conns.length ? `${conns.length} tài khoản` : `${conns.length} dòng, ${unique} email unique`;
+          const counts = {};
+          conns.forEach(c => { const key = (c.email || c.name || '').toLowerCase(); if (key) counts[key] = (counts[key] || 0) + 1 });
+          const unique = Object.keys(counts).length;
+          const dup = Object.values(counts).filter(n => n > 1).length;
+          $('acc-count').textContent = dup ? `${conns.length} dòng, ${unique} email unique, trùng ${dup}` : `${conns.length} tài khoản`;
           if (!conns.length) { $('acc-body').innerHTML = '<tr><td colspan="7" class="empty-cell">Chưa có tài khoản nào.</td></tr>'; return }
           $('acc-body').innerHTML = conns.map((c, i) => {
             const data = c.data || {};
@@ -900,6 +905,19 @@
       };
 
       $('btn-refresh').addEventListener('click', loadAccounts);
+      $('btn-dedupe').addEventListener('click', async () => {
+        if (!serverOnline) return;
+        if (!confirm('Lọc trùng email trong 9router. Tool sẽ backup SQLite rồi giữ lại dòng tốt nhất cho mỗi email.')) return;
+        $('btn-dedupe').disabled = true;
+        try {
+          const r = await fetch(API + '/api/dedupe-connections', { method: 'POST' });
+          const d = await r.json();
+          if (d.error || d.ok === false) showMsg('acc-msg', d.error || 'Lỗi lọc trùng email', 'err');
+          else showMsg('acc-msg', d.removed ? `Đã xóa ${d.removed} dòng trùng email. Backup: ${d.backup || 'không có'}` : 'Không có email trùng.', 'ok');
+        } catch (e) { showMsg('acc-msg', 'Lỗi lọc trùng email: ' + e.message, 'err') }
+        $('btn-dedupe').disabled = false;
+        loadAccounts();
+      });
       $('btn-import-from-cliproxy').addEventListener('click', async () => {
         if (!serverOnline) return;
         if (!confirm('Nạp Codex runtime-auths từ CLIProxy vào 9router. Tool sẽ backup 9router SQLite trước khi ghi.')) return;
@@ -1025,6 +1043,8 @@
 
       // === Tab 4: File import ===
       let fileConns = [];
+      let fileRefreshHints = [];
+      let fileRefreshHintSeq = 0;
       const dropZone = $('drop-zone');
       const fileInput = $('file-input');
 
@@ -1043,15 +1063,38 @@
             all.push(...parseRawConnections(raw));
           }
           fileConns = all;
+          fileRefreshHints = [];
           dropZone.textContent = `✅ ${files.length} file — ${all.length} codex connections`;
           dropZone.style.borderColor = 'var(--green)';
           renderFilePreview();
+          loadFileRefreshHints();
         } catch (err) {
           dropZone.textContent = '❌ ' + err.message;
           dropZone.style.borderColor = 'var(--red)';
           fileConns = [];
+          fileRefreshHints = [];
           renderFilePreview();
         }
+      }
+
+      async function loadFileRefreshHints() {
+        const seq = ++fileRefreshHintSeq;
+        fileRefreshHints = [];
+        if (!serverOnline || !fileConns.length) { renderFilePreview(); return }
+        try {
+          const r = await fetch(API + '/api/refresh-preview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ connections: fileConns })
+          });
+          const d = await r.json();
+          if (seq !== fileRefreshHintSeq) return;
+          fileRefreshHints = Array.isArray(d.items) ? d.items : [];
+        } catch {
+          if (seq !== fileRefreshHintSeq) return;
+          fileRefreshHints = [];
+        }
+        renderFilePreview();
       }
 
       function renderFilePreview() {
@@ -1060,7 +1103,7 @@
         body.innerHTML = fileConns.map((c, i) => {
           const plan = c.providerSpecificData?.chatgptPlanType || c.data?.providerSpecificData?.chatgptPlanType || '';
           const exp = c.expiresAt || c.data?.expiresAt || '';
-          return `<tr><td>${i + 1}</td><td><div class="cell-clip">${esc(c.email || c.name || '-')}</div></td><td>${plan ? `<span class="tag tag-plus">${esc(plan)}</span>` : '-'}</td><td>${refreshBadge(c)}</td><td>${fmtDate(exp)}</td></tr>`
+          return `<tr><td>${i + 1}</td><td><div class="cell-clip">${esc(c.email || c.name || '-')}</div></td><td>${plan ? `<span class="tag tag-plus">${esc(plan)}</span>` : '-'}</td><td>${refreshBadge(c, i, fileRefreshHints)}</td><td>${fmtDate(exp)}</td></tr>`
         }).join('');
         $('btn-file-import').disabled = !serverOnline;
         $('btn-file-import-cliproxy').disabled = !serverOnline;

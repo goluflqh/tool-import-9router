@@ -1,6 +1,6 @@
 # 9router Import Tool
 
-Version: 1.0.1
+Version: 1.0.2
 
 Tool web local để quản lý Codex OAuth accounts cho 9router và CLIProxyAPI.
 
@@ -36,6 +36,8 @@ http://127.0.0.1:9876
 5. Chỉ khi preview vẫn hiện `access only` sau khi server online thì account đó không có refresh token trong các nguồn local.
 6. Sau khi 9router đã `refresh OK`, dùng `Ghi sang CLIProxy` nếu cần đồng bộ sang CLIProxy.
 
+Import từ file JSON cũng dùng cùng backend với import tay, nên vẫn tự bổ sung refresh token theo email nếu nguồn local đã có.
+
 Refresh token không thể suy ra từ access token. Nó phải đến từ OAuth/offline access hoặc một local store đã có sẵn.
 
 ## Account free
@@ -47,6 +49,7 @@ Giới hạn nằm ở quyền của account: account free có thể không gọ
 ## Các nút trong UI
 
 - `Refresh`: tải lại danh sách hiện tại.
+- `Lọc trùng email`: giữ lại một dòng tốt nhất cho mỗi email trong 9router, backup SQLite trước khi xóa dòng trùng.
 - `Sửa cấu hình`: sửa alias `gpt-5.5 -> cx/gpt-5.5` trong 9router và sửa Codex config. Dùng khi Codex lỗi model/provider.
 - `Nạp từ CLIProxy`: lấy auth file trong `D:\CLIProxyAPI\runtime-auths` nạp vào 9router. Dùng khi CLIProxy có refresh token/account mà 9router thiếu.
 - `Nạp từ Codex`: lấy token trong `~/.codex/auth.json` nạp vào 9router. Dùng khi Codex Desktop/CLI đang đăng nhập tốt và cần đưa token đó vào 9router.
@@ -62,5 +65,6 @@ Giới hạn nằm ở quyền của account: account free có thể không gọ
 
 ## Version
 
+- `v1.0.2`: thêm lọc trùng email trong 9router và preview hydrate refresh cho import từ file JSON.
 - `v1.0.1`: chỉnh UI tiếng Việt có dấu, làm rõ account free, và giữ wording đơn giản hơn.
 - `v1.0.0`: recovery build đầu tiên có 9router là nguồn chính, hydrate refresh token từ 9router/CLIProxy/Codex auth, sync CLIProxy, repair alias/config, và UI preview `fill: ...`.

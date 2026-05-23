@@ -460,6 +460,81 @@ def delete_connection(conn_id):
     return deleted > 0
 
 
+def _time_score(value):
+    if not value:
+        return 0
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00")).timestamp()
+    except Exception:
+        return 0
+
+
+def _dedupe_score(row):
+    data = parse_json(row.get("data"), {})
+    status = token_summary(data)
+    seconds_left = status.get("accessSecondsLeft")
+    if seconds_left is None:
+        seconds_left = -10**12
+    return (
+        1 if status.get("hasRefreshToken") else 0,
+        1 if row.get("isActive") else 0,
+        1 if data.get("testStatus") == "active" else 0,
+        seconds_left,
+        _time_score(row.get("updatedAt")),
+        -int(row.get("priority") or 0),
+    )
+
+
+def dedupe_connections():
+    if not SQLITE_PATH or not os.path.exists(SQLITE_PATH):
+        return {"ok": False, "removed": 0, "groups": [], "error": "9router database not found"}
+
+    backup = backup_sqlite()
+    db = connect_db()
+    cur = db.cursor()
+    cur.execute(
+        "SELECT id, provider, authType, name, email, priority, isActive, data, createdAt, updatedAt "
+        "FROM providerConnections WHERE provider=? ORDER BY priority",
+        (PROVIDER,),
+    )
+    cols = [d[0] for d in cur.description]
+    groups = {}
+    for r in cur.fetchall():
+        row = dict(zip(cols, r))
+        key = (row.get("email") or row.get("name") or "").lower().strip()
+        if key:
+            groups.setdefault(key, []).append(row)
+
+    removed_ids = []
+    details = []
+    try:
+        with db:
+            for email, rows in groups.items():
+                if len(rows) < 2:
+                    continue
+                keep = max(rows, key=_dedupe_score)
+                losers = [row for row in rows if row["id"] != keep["id"]]
+                for row in losers:
+                    cur.execute("DELETE FROM providerConnections WHERE id=? AND provider=?", (row["id"], PROVIDER))
+                    removed_ids.append(row["id"])
+                details.append({
+                    "email": email,
+                    "keptId": keep["id"],
+                    "removed": len(losers),
+                })
+
+            if removed_ids:
+                cur.execute("SELECT id FROM providerConnections WHERE provider=? ORDER BY priority, updatedAt", (PROVIDER,))
+                for priority, (conn_id,) in enumerate(cur.fetchall(), start=1):
+                    cur.execute("UPDATE providerConnections SET priority=? WHERE id=? AND provider=?", (priority, conn_id, PROVIDER))
+    except Exception as e:
+        db.close()
+        return {"ok": False, "removed": len(removed_ids), "groups": details, "backup": backup, "error": str(e)}
+
+    db.close()
+    return {"ok": True, "removed": len(removed_ids), "groups": details, "backup": backup}
+
+
 def export_codex_payload(include_secrets=True):
     conns = []
     for row in get_connections(include_secrets=include_secrets):
@@ -1100,6 +1175,12 @@ class Handler(SimpleHTTPRequestHandler):
                 alias_report = ensure_model_aliases()
                 config_report = repair_codex_config() if data.get("codexConfig", True) else {"ok": True, "changed": False}
                 self._json({"ok": True, "aliasRepair": alias_report, "codexConfig": config_report})
+            except Exception as e:
+                self._json({"error": str(e)}, 500)
+            return
+        if p == "/api/dedupe-connections":
+            try:
+                self._json(dedupe_connections())
             except Exception as e:
                 self._json({"error": str(e)}, 500)
             return

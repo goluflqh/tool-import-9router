@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.2 - 2026-05-24
+
+- Added `Lọc trùng email` action for 9router accounts.
+- Added safe SQLite backup before removing duplicate email rows.
+- Added refresh hydration preview for JSON file import.
+
 ## v1.0.1 - 2026-05-24
 
 - Clarified that free accounts can be added when their token is valid, but model access remains limited by the account plan.
