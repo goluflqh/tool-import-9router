@@ -679,6 +679,7 @@
       const $ = id => document.getElementById(id);
       let serverOnline = false;
       let healthFailures = 0;
+      let instanceName = 'local';
 
       // === JWT decode ===
       function b64d(s) { const n = s.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(s.length / 4) * 4, '='); return new TextDecoder().decode(Uint8Array.from(atob(n), c => c.charCodeAt(0))) }
@@ -721,6 +722,7 @@
           const r = await fetch(API + '/api/health', { cache: 'no-store', signal: AbortSignal.timeout(4000) });
           const d = await r.json();
           ok = r.ok && !!d.ok;
+          if (ok) instanceName = d.instanceName || 'local';
         } catch { ok = false }
         if (ok) {
           healthFailures = 0;
@@ -731,7 +733,7 @@
         }
         const bar = $('status-bar'), txt = $('status-text');
         bar.className = 'status-bar ' + (serverOnline ? 'online' : 'offline');
-        txt.textContent = serverOnline ? 'Server đang chạy — sẵn sàng import' : 'Server offline — chỉ có thể tải JSON';
+        txt.textContent = serverOnline ? `Server đang chạy — ${instanceName}` : 'Server offline — chỉ có thể tải JSON';
         $('btn-import').textContent = serverOnline ? 'Import vào 9router' : 'Import vào 9router (cần server)';
         renderPreview();
         if (serverOnline && parsed.length) loadRefreshHints();

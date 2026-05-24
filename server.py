@@ -16,10 +16,12 @@ from datetime import datetime, timezone
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-PORT = 9876
+PORT = int(os.environ.get("IMPORT9ROUTER_PORT", "9876"))
 PROVIDER = "codex"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 BACKUP_ROOT = os.path.join(SCRIPT_DIR, "backups")
+INSTANCE_NAME = os.environ.get("IMPORT9ROUTER_INSTANCE", "local")
+CUSTOM_SQLITE_PATH = os.environ.get("9ROUTER_SQLITE_PATH") or os.environ.get("IMPORT9ROUTER_DB_PATH")
 CODEX_CONFIG_PATH = os.path.join(os.path.expanduser("~"), ".codex", "config.toml")
 CODEX_AUTH_PATH = os.path.join(os.path.expanduser("~"), ".codex", "auth.json")
 LEGACY_DB_JSON = os.path.join(os.environ.get("APPDATA", ""), "9router", "db.json")
@@ -37,6 +39,10 @@ DEFAULT_MODEL_ALIASES = {
 
 
 def find_sqlite():
+    if CUSTOM_SQLITE_PATH:
+        p = os.path.abspath(os.path.expanduser(CUSTOM_SQLITE_PATH))
+        if os.path.exists(p):
+            return p
     candidates = [
         os.path.join(os.environ.get("APPDATA", ""), "9router", "db", "data.sqlite"),
         os.path.join(os.path.expanduser("~"), "AppData", "Roaming", "9router", "db", "data.sqlite"),
@@ -1069,7 +1075,7 @@ class Handler(SimpleHTTPRequestHandler):
             return True
         try:
             u = urlparse(origin)
-            return u.scheme in ("http", "https") and u.hostname in ("localhost", "127.0.0.1", "::1") and u.port == PORT
+            return u.scheme in ("http", "https") and u.hostname in ("localhost", "127.0.0.1", "::1")
         except Exception:
             return False
 
@@ -1118,8 +1124,11 @@ class Handler(SimpleHTTPRequestHandler):
             aliases = get_model_aliases()
             self._json({
                 "ok": True,
+                "instanceName": INSTANCE_NAME,
+                "port": PORT,
                 "sqlite": bool(SQLITE_PATH and os.path.exists(SQLITE_PATH)),
                 "path": SQLITE_PATH or "",
+                "customPath": bool(CUSTOM_SQLITE_PATH),
                 "aliases": aliases,
                 "desiredAliases": desired_model_aliases(),
                 "codexConfig": get_codex_config_status(),
@@ -1269,8 +1278,11 @@ def main():
     print("=" * 50)
     print("  9router Import Tool")
     print("=" * 50)
+    print("  Instance: {}".format(INSTANCE_NAME))
     if SQLITE_PATH:
         print("  Database: {}".format(SQLITE_PATH))
+        if CUSTOM_SQLITE_PATH:
+            print("  Database source: custom env path")
     else:
         print("  [!] Database not found!")
         print("  Install and run 9router first.")
@@ -1287,7 +1299,8 @@ def main():
         time.sleep(0.8)
         webbrowser.open("http://localhost:{}".format(PORT))
 
-    threading.Thread(target=open_browser, daemon=True).start()
+    if os.environ.get("IMPORT9ROUTER_NO_BROWSER") != "1":
+        threading.Thread(target=open_browser, daemon=True).start()
 
     try:
         server.serve_forever()

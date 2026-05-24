@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.3 - 2026-05-24
+
+- Added instance naming for local/VPS separation.
+- Added custom SQLite path via `9ROUTER_SQLITE_PATH` or `IMPORT9ROUTER_DB_PATH`.
+- Added `IMPORT9ROUTER_NO_BROWSER=1` for headless VPS use.
+- Allowed localhost SSH tunnel ports that differ from the server's internal port.
+
 ## v1.0.2 - 2026-05-24
 
 - Added `Lọc trùng email` action for 9router accounts.

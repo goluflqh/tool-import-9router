@@ -1,10 +1,10 @@
 # 9router Import Tool
 
-Version: 1.0.2
+Version: 1.0.3
 
 Tool web local để quản lý Codex OAuth accounts cho 9router và CLIProxyAPI.
 
-## Chạy tool
+## Chạy tool local
 
 Windows:
 
@@ -23,6 +23,48 @@ Mở UI tại:
 ```text
 http://127.0.0.1:9876
 ```
+
+## Dùng cho 9router trên VPS
+
+Không dùng tool local để sửa database VPS. Local và VPS nên là 2 instance riêng.
+
+Chạy tool ngay trên VPS, trỏ vào SQLite của 9router VPS:
+
+```bash
+cd ~/tool-import-9router
+export IMPORT9ROUTER_INSTANCE=9router-vps
+export IMPORT9ROUTER_NO_BROWSER=1
+export 9ROUTER_SQLITE_PATH=/path/to/9router/db/data.sqlite
+python3 server.py
+```
+
+Nếu 9router VPS dùng đúng path mặc định Linux `~/.config/9router/db/data.sqlite`, có thể bỏ `9ROUTER_SQLITE_PATH`.
+
+Tunnel tool bằng port khác để không đụng tool local:
+
+```bash
+ssh -N -L 127.0.0.1:9877:127.0.0.1:9876 deploy@165.22.247.29
+```
+
+Mở:
+
+```text
+http://127.0.0.1:9877
+```
+
+Dashboard 9router VPS của bạn vẫn có thể giữ tunnel riêng:
+
+```bash
+ssh -N -L 127.0.0.1:22129:172.17.0.1:20128 deploy@165.22.247.29
+```
+
+Quy tắc tránh xung đột:
+
+- Tool local chỉ dùng cho 9router local.
+- Tool VPS chỉ dùng cho 9router VPS.
+- Nhìn dòng trạng thái `Server đang chạy — ...` để biết đang ở instance nào.
+- Không bấm `Ghi sang CLIProxy` trên VPS nếu VPS không có CLIProxy runtime-auths mà bạn muốn quản lý.
+- Nếu re-OAuth trong dashboard VPS, bấm `Refresh` trong tool VPS để đọc lại SQLite.
 
 ## Luồng dùng chính
 
@@ -60,11 +102,12 @@ Giới hạn nằm ở quyền của account: account free có thể không gọ
 ## Bảo mật
 
 - Không commit `backups/`, `runtime-auths`, `.bak`, `__pycache__`, hoặc file JSON export có token.
-- Tool chỉ bind local `127.0.0.1:9876`.
-- API CORS chỉ cho localhost/127.0.0.1 cùng port.
+- Tool chỉ bind local `127.0.0.1`.
+- API CORS chỉ cho Origin từ localhost/127.0.0.1/::1 để hỗ trợ SSH tunnel port riêng.
 
 ## Version
 
+- `v1.0.3`: thêm chế độ instance cho VPS/local, custom SQLite path qua env, tunnel port riêng, và tùy chọn không auto-open browser.
 - `v1.0.2`: thêm lọc trùng email trong 9router và preview hydrate refresh cho import từ file JSON.
 - `v1.0.1`: chỉnh UI tiếng Việt có dấu, làm rõ account free, và giữ wording đơn giản hơn.
 - `v1.0.0`: recovery build đầu tiên có 9router là nguồn chính, hydrate refresh token từ 9router/CLIProxy/Codex auth, sync CLIProxy, repair alias/config, và UI preview `fill: ...`.
