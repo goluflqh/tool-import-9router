@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.4 - 2026-05-24
+
+- Added checkbox selection for existing 9router accounts.
+- Added `Export đã chọn` to export token JSON for only selected accounts.
+- Added checkbox selection in JSON file import so users can import only selected accounts.
+- Updated VPS docs to prefer `IMPORT9ROUTER_DB_PATH` on Linux shells.
+
 ## v1.0.3 - 2026-05-24
 
 - Added instance naming for local/VPS separation.

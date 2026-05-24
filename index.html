@@ -218,6 +218,11 @@
       transition: .15s
     }
 
+    .btn:disabled {
+      opacity: .45;
+      cursor: not-allowed
+    }
+
     .btn-primary {
       background: var(--accent);
       color: #fff
@@ -238,7 +243,7 @@
       color: var(--muted)
     }
 
-    .btn-ghost:hover {
+    .btn-ghost:hover:not(:disabled) {
       background: var(--surface2);
       color: var(--text)
     }
@@ -262,7 +267,26 @@
     .actions {
       display: flex;
       gap: 8px;
-      margin-bottom: 10px
+      margin-bottom: 10px;
+      flex-wrap: wrap
+    }
+
+    .action-note {
+      color: var(--muted);
+      font-size: .82rem;
+      margin: -2px 0 10px
+    }
+
+    .select-cell {
+      width: 42px;
+      text-align: center
+    }
+
+    .select-box {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+      cursor: pointer
     }
 
     .stats {
@@ -563,6 +587,9 @@
         <div class="panel-body">
           <div class="actions">
             <button class="btn btn-ghost" id="btn-refresh" title="Tải lại danh sách account trong 9router">Refresh</button>
+            <button class="btn btn-ghost" id="btn-acc-select-all" title="Chọn toàn bộ account đang thấy trong bảng" disabled>Chọn tất cả</button>
+            <button class="btn btn-ghost" id="btn-acc-select-none" title="Bỏ chọn toàn bộ account đang thấy trong bảng" disabled>Bỏ chọn</button>
+            <button class="btn btn-ghost" id="btn-export-selected" title="Xuất JSON có token cho các account đã chọn" disabled>Export đã chọn</button>
             <button class="btn btn-ghost" id="btn-dedupe" title="Giữ lại một dòng tốt nhất cho mỗi email và backup SQLite trước khi xóa dòng trùng">Lọc trùng email</button>
             <button class="btn btn-ghost" id="btn-repair" title="Sửa alias gpt-5.5 và cấu hình Codex khi lỗi model/provider">Sửa cấu hình</button>
             <button class="btn btn-ghost" id="btn-import-from-cliproxy" title="Lấy account/refresh token đang có trong CLIProxy để nạp vào 9router">Nạp từ CLIProxy</button>
@@ -570,12 +597,14 @@
             <button class="btn btn-ghost" id="btn-sync-cliproxy" title="Ghi account từ 9router sang CLIProxy sau khi 9router đã refresh OK">Ghi sang CLIProxy</button>
             <button class="btn btn-ghost" id="btn-export-secrets" title="Xuất JSON có token để backup thủ công trên máy này">Export JSON</button>
           </div>
+          <div class="action-note">Tick account cần di chuyển rồi bấm <strong>Export đã chọn</strong>. File này dùng để import sang VPS/local khác.</div>
           <div class="msg" id="acc-msg"></div>
           <div id="acc-count" style="color:var(--muted);font-size:.85rem;margin-bottom:10px"></div>
           <div class="tbl-wrap" style="max-height:500px">
             <table>
               <thead>
                 <tr>
+                  <th class="select-cell"></th>
                   <th>#</th>
                   <th>Email</th>
                   <th>Gói</th>
@@ -587,7 +616,7 @@
               </thead>
               <tbody id="acc-body">
                 <tr>
-                  <td colspan="7" class="empty-cell">Đang tải...</td>
+                  <td colspan="8" class="empty-cell">Đang tải...</td>
                 </tr>
               </tbody>
             </table>
@@ -644,10 +673,16 @@
         <div class="panel-body">
           <input type="file" id="file-input" accept=".json" class="hidden" multiple />
           <div class="drop-zone" id="drop-zone">📂 Kéo thả hoặc click để chọn file JSON</div>
+          <div class="actions">
+            <button class="btn btn-ghost" id="btn-file-select-all" disabled>Chọn tất cả</button>
+            <button class="btn btn-ghost" id="btn-file-select-none" disabled>Bỏ chọn</button>
+          </div>
+          <div class="action-note">Mặc định tool chọn toàn bộ account trong file. Bỏ tick account nào không muốn import.</div>
           <div class="tbl-wrap">
             <table>
               <thead>
                 <tr>
+                  <th class="select-cell"></th>
                   <th>#</th>
                   <th>Email</th>
                   <th>Gói</th>
@@ -657,7 +692,7 @@
               </thead>
               <tbody id="file-body">
                 <tr>
-                  <td colspan="5" class="empty-cell">Chưa chọn file.</td>
+                  <td colspan="6" class="empty-cell">Chưa chọn file.</td>
                 </tr>
               </tbody>
             </table>
@@ -714,6 +749,18 @@
         a.click();
         URL.revokeObjectURL(a.href);
       }
+      function exportFilename(prefix, count) {
+        const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+        return `${prefix}-${count}-${stamp}.json`;
+      }
+      function cleanConnectionForExport(c, index) {
+        const out = { ...c };
+        delete out._plan;
+        delete out._expires;
+        delete out._hasRefresh;
+        out.priority = index + 1;
+        return out;
+      }
 
       // === Health check ===
       async function checkHealth() {
@@ -736,6 +783,7 @@
         txt.textContent = serverOnline ? `Server đang chạy — ${instanceName}` : 'Server offline — chỉ có thể tải JSON';
         $('btn-import').textContent = serverOnline ? 'Import vào 9router' : 'Import vào 9router (cần server)';
         renderPreview();
+        if (fileConns.length) renderFilePreview();
         if (serverOnline && parsed.length) loadRefreshHints();
         if (serverOnline && fileConns.length) loadFileRefreshHints();
       }
@@ -872,33 +920,81 @@
       // Download fallback
       $('btn-download').addEventListener('click', () => {
         if (!parsed.length) return;
-        const data = { generatedAt: new Date().toISOString(), modelAliases: { 'gpt-5.5': 'cx/gpt-5.5' }, providerConnections: parsed.map((c, i) => { const o = { ...c }; delete o._plan; delete o._expires; delete o._hasRefresh; o.priority = i + 1; return o }) };
+        const data = { generatedAt: new Date().toISOString(), modelAliases: { 'gpt-5.5': 'cx/gpt-5.5' }, providerConnections: parsed.map(cleanConnectionForExport) };
         const email = parsed[0]?.email || 'session';
         saveJson(data, email.replace(/[^a-z0-9@._-]/gi, '') + '.9router-codex.json');
       });
 
       // === Tab 2: Accounts ===
+      let currentAccounts = [];
+      let selectedAccountIds = new Set();
+      let accountCountText = '';
+
+      function accountKey(c) {
+        return String(c?.id || c?.email || c?.name || '');
+      }
+
+      function selectedAccounts() {
+        return currentAccounts.filter(c => selectedAccountIds.has(accountKey(c)));
+      }
+
+      function updateAccountSelectionUi() {
+        const selected = selectedAccounts().length;
+        $('acc-count').textContent = accountCountText + (selected ? `, đã chọn ${selected}` : '');
+        $('btn-export-selected').textContent = selected ? `Export đã chọn (${selected})` : 'Export đã chọn';
+        $('btn-export-selected').disabled = !serverOnline || !selected;
+        $('btn-acc-select-all').disabled = !serverOnline || !currentAccounts.length;
+        $('btn-acc-select-none').disabled = !selected;
+      }
+
+      function renderAccountsTable() {
+        const conns = currentAccounts;
+        const body = $('acc-body');
+        if (!conns.length) {
+          body.innerHTML = '<tr><td colspan="8" class="empty-cell">Chưa có tài khoản nào.</td></tr>';
+          updateAccountSelectionUi();
+          return;
+        }
+        body.innerHTML = conns.map((c, i) => {
+          const data = c.data || {};
+          const plan = data.providerSpecificData?.chatgptPlanType || '';
+          const exp = data.expiresAt || '';
+          const status = data.testStatus || 'unknown';
+          const stCls = status === 'active' ? 'green' : status === 'error' ? 'red' : '';
+          const id = accountKey(c);
+          const checked = selectedAccountIds.has(id) ? ' checked' : '';
+          return `<tr><td class="select-cell"><input type="checkbox" class="select-box acc-select" data-id="${esc(id)}"${checked} aria-label="Chọn account"></td><td>${c.priority || i + 1}</td><td><div class="cell-clip" title="${esc(c.email)}">${esc(c.email || c.name || '-')}</div></td><td>${plan ? `<span class="tag tag-plus">${esc(plan)}</span>` : '-'}</td><td>${refreshBadge(c)}</td><td>${fmtDate(exp)}</td><td><span style="color:var(--${stCls || 'muted'})">${esc(status)}</span></td><td><button class="del-btn" onclick="delConn('${esc(c.id)}')">✕</button></td></tr>`
+        }).join('');
+        updateAccountSelectionUi();
+      }
+
       async function loadAccounts() {
-        if (!serverOnline) { $('acc-body').innerHTML = '<tr><td colspan="7" class="empty-cell">Server offline</td></tr>'; $('acc-count').textContent = ''; return }
+        if (!serverOnline) {
+          currentAccounts = [];
+          accountCountText = '';
+          $('acc-body').innerHTML = '<tr><td colspan="8" class="empty-cell">Server offline</td></tr>';
+          updateAccountSelectionUi();
+          return;
+        }
         try {
           const r = await fetch(API + '/api/connections');
           const d = await r.json();
           const conns = d.connections || [];
+          currentAccounts = conns;
+          const validIds = new Set(conns.map(accountKey));
+          selectedAccountIds = new Set([...selectedAccountIds].filter(id => validIds.has(id)));
           const counts = {};
           conns.forEach(c => { const key = (c.email || c.name || '').toLowerCase(); if (key) counts[key] = (counts[key] || 0) + 1 });
           const unique = Object.keys(counts).length;
           const dup = Object.values(counts).filter(n => n > 1).length;
-          $('acc-count').textContent = dup ? `${conns.length} dòng, ${unique} email unique, trùng ${dup}` : `${conns.length} tài khoản`;
-          if (!conns.length) { $('acc-body').innerHTML = '<tr><td colspan="7" class="empty-cell">Chưa có tài khoản nào.</td></tr>'; return }
-          $('acc-body').innerHTML = conns.map((c, i) => {
-            const data = c.data || {};
-            const plan = data.providerSpecificData?.chatgptPlanType || '';
-            const exp = data.expiresAt || '';
-            const status = data.testStatus || 'unknown';
-            const stCls = status === 'active' ? 'green' : status === 'error' ? 'red' : '';
-            return `<tr><td>${c.priority || i + 1}</td><td><div class="cell-clip" title="${esc(c.email)}">${esc(c.email || c.name || '-')}</div></td><td>${plan ? `<span class="tag tag-plus">${esc(plan)}</span>` : '-'}</td><td>${refreshBadge(c)}</td><td>${fmtDate(exp)}</td><td><span style="color:var(--${stCls || 'muted'})">${esc(status)}</span></td><td><button class="del-btn" onclick="delConn('${esc(c.id)}')">✕</button></td></tr>`
-          }).join('');
-        } catch { $('acc-body').innerHTML = '<tr><td colspan="7" class="empty-cell">Lỗi kết nối</td></tr>' }
+          accountCountText = dup ? `${conns.length} dòng, ${unique} email unique, trùng ${dup}` : `${conns.length} tài khoản`;
+          renderAccountsTable();
+        } catch {
+          currentAccounts = [];
+          accountCountText = '';
+          $('acc-body').innerHTML = '<tr><td colspan="8" class="empty-cell">Lỗi kết nối</td></tr>';
+          updateAccountSelectionUi();
+        }
       }
 
       window.delConn = async function (id) {
@@ -906,7 +1002,45 @@
         try { await fetch(API + '/api/connections/' + id, { method: 'DELETE' }); loadAccounts() } catch { }
       };
 
+      $('acc-body').addEventListener('change', e => {
+        if (!e.target.classList.contains('acc-select')) return;
+        const id = e.target.dataset.id;
+        if (!id) return;
+        if (e.target.checked) selectedAccountIds.add(id);
+        else selectedAccountIds.delete(id);
+        updateAccountSelectionUi();
+      });
       $('btn-refresh').addEventListener('click', loadAccounts);
+      $('btn-acc-select-all').addEventListener('click', () => {
+        currentAccounts.forEach(c => { const id = accountKey(c); if (id) selectedAccountIds.add(id) });
+        renderAccountsTable();
+      });
+      $('btn-acc-select-none').addEventListener('click', () => {
+        selectedAccountIds.clear();
+        renderAccountsTable();
+      });
+      $('btn-export-selected').addEventListener('click', async () => {
+        const selected = selectedAccounts();
+        if (!serverOnline || !selected.length) return;
+        if (!confirm(`Export ${selected.length} account đã chọn ra JSON có access/refresh token. Không chia sẻ file này.`)) return;
+        try {
+          const selectedIds = new Set(selected.map(accountKey));
+          const selectedEmails = new Set(selected.map(c => (c.email || c.name || '').toLowerCase()).filter(Boolean));
+          const r = await fetch(API + '/api/export?secrets=1');
+          const d = await r.json();
+          const all = Array.isArray(d.providerConnections) ? d.providerConnections : [];
+          let picked = all.filter(c => selectedIds.has(String(c.id || '')));
+          if (!picked.length) picked = all.filter(c => selectedEmails.has(String(c.email || c.name || '').toLowerCase()));
+          if (!picked.length) {
+            showMsg('acc-msg', 'Không tìm thấy account đã chọn trong dữ liệu export.', 'err');
+            return;
+          }
+          d.providerConnections = picked.map(cleanConnectionForExport);
+          d.note = `Selected Codex account export for ${instanceName}. Contains tokens; do not share.`;
+          saveJson(d, exportFilename('9router-codex-selected', picked.length));
+          showMsg('acc-msg', `Đã export ${picked.length} account đã chọn.`, 'ok');
+        } catch (e) { showMsg('acc-msg', 'Lỗi export đã chọn: ' + e.message, 'err') }
+      });
       $('btn-dedupe').addEventListener('click', async () => {
         if (!serverOnline) return;
         if (!confirm('Lọc trùng email trong 9router. Tool sẽ backup SQLite rồi giữ lại dòng tốt nhất cho mỗi email.')) return;
@@ -1047,6 +1181,7 @@
       let fileConns = [];
       let fileRefreshHints = [];
       let fileRefreshHintSeq = 0;
+      let selectedFileIndexes = new Set();
       const dropZone = $('drop-zone');
       const fileInput = $('file-input');
 
@@ -1065,6 +1200,7 @@
             all.push(...parseRawConnections(raw));
           }
           fileConns = all;
+          selectedFileIndexes = new Set(all.map((_, i) => String(i)));
           fileRefreshHints = [];
           dropZone.textContent = `✅ ${files.length} file — ${all.length} codex connections`;
           dropZone.style.borderColor = 'var(--green)';
@@ -1074,6 +1210,7 @@
           dropZone.textContent = '❌ ' + err.message;
           dropZone.style.borderColor = 'var(--red)';
           fileConns = [];
+          selectedFileIndexes = new Set();
           fileRefreshHints = [];
           renderFilePreview();
         }
@@ -1099,18 +1236,51 @@
         renderFilePreview();
       }
 
+      function selectedFileConns() {
+        return fileConns.filter((_, i) => selectedFileIndexes.has(String(i)));
+      }
+
+      function updateFileSelectionUi() {
+        const selected = selectedFileConns().length;
+        $('btn-file-select-all').disabled = !fileConns.length;
+        $('btn-file-select-none').disabled = !selected;
+        $('btn-file-import').textContent = selected ? `Import vào 9router (${selected})` : 'Import vào 9router';
+        $('btn-file-import-cliproxy').textContent = selected ? `Import vào CLIProxy (${selected})` : 'Import vào CLIProxy';
+        $('btn-file-import').disabled = !serverOnline || !selected;
+        $('btn-file-import-cliproxy').disabled = !serverOnline || !selected;
+      }
+
       function renderFilePreview() {
         const body = $('file-body');
-        if (!fileConns.length) { body.innerHTML = '<tr><td colspan="5" class="empty-cell">Không tìm thấy connections.</td></tr>'; $('btn-file-import').disabled = true; $('btn-file-import-cliproxy').disabled = true; return }
+        if (!fileConns.length) {
+          body.innerHTML = '<tr><td colspan="6" class="empty-cell">Không tìm thấy connections.</td></tr>';
+          updateFileSelectionUi();
+          return;
+        }
         body.innerHTML = fileConns.map((c, i) => {
           const plan = c.providerSpecificData?.chatgptPlanType || c.data?.providerSpecificData?.chatgptPlanType || '';
           const exp = c.expiresAt || c.data?.expiresAt || '';
-          return `<tr><td>${i + 1}</td><td><div class="cell-clip">${esc(c.email || c.name || '-')}</div></td><td>${plan ? `<span class="tag tag-plus">${esc(plan)}</span>` : '-'}</td><td>${refreshBadge(c, i, fileRefreshHints)}</td><td>${fmtDate(exp)}</td></tr>`
+          const checked = selectedFileIndexes.has(String(i)) ? ' checked' : '';
+          return `<tr><td class="select-cell"><input type="checkbox" class="select-box file-select" data-index="${i}"${checked} aria-label="Chọn account"></td><td>${i + 1}</td><td><div class="cell-clip">${esc(c.email || c.name || '-')}</div></td><td>${plan ? `<span class="tag tag-plus">${esc(plan)}</span>` : '-'}</td><td>${refreshBadge(c, i, fileRefreshHints)}</td><td>${fmtDate(exp)}</td></tr>`
         }).join('');
-        $('btn-file-import').disabled = !serverOnline;
-        $('btn-file-import-cliproxy').disabled = !serverOnline;
+        updateFileSelectionUi();
       }
 
+      $('file-body').addEventListener('change', e => {
+        if (!e.target.classList.contains('file-select')) return;
+        const index = e.target.dataset.index;
+        if (e.target.checked) selectedFileIndexes.add(index);
+        else selectedFileIndexes.delete(index);
+        updateFileSelectionUi();
+      });
+      $('btn-file-select-all').addEventListener('click', () => {
+        selectedFileIndexes = new Set(fileConns.map((_, i) => String(i)));
+        renderFilePreview();
+      });
+      $('btn-file-select-none').addEventListener('click', () => {
+        selectedFileIndexes = new Set();
+        renderFilePreview();
+      });
       dropZone.addEventListener('click', () => fileInput.click());
       dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag') });
       dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
@@ -1118,31 +1288,31 @@
       fileInput.addEventListener('change', e => { if (e.target.files.length) handleFiles(e.target.files); e.target.value = '' });
 
       $('btn-file-import').addEventListener('click', async () => {
-        if (!fileConns.length || !serverOnline) return;
+        const conns = selectedFileConns();
+        if (!conns.length || !serverOnline) return;
         $('btn-file-import').disabled = true;
         $('btn-file-import').textContent = 'Đang import...';
         try {
-          const r = await fetch(API + '/api/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ connections: fileConns }) });
+          const r = await fetch(API + '/api/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ connections: conns }) });
           const d = await r.json();
           if (d.error) showMsg('file-msg', d.error, 'err');
           else showMsg('file-msg', importSummary(d), 'ok');
         } catch (e) { showMsg('file-msg', 'Lỗi: ' + e.message, 'err') }
-        $('btn-file-import').disabled = false;
-        $('btn-file-import').textContent = 'Import vào 9router';
+        updateFileSelectionUi();
         loadAccounts();
       });
       $('btn-file-import-cliproxy').addEventListener('click', async () => {
-        if (!fileConns.length || !serverOnline) return;
+        const conns = selectedFileConns();
+        if (!conns.length || !serverOnline) return;
         $('btn-file-import-cliproxy').disabled = true;
         $('btn-file-import-cliproxy').textContent = 'Đang import CLIProxy...';
         try {
-          const r = await fetch(API + '/api/import-cliproxy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ connections: fileConns }) });
+          const r = await fetch(API + '/api/import-cliproxy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ connections: conns }) });
           const d = await r.json();
           if (d.error || d.ok === false) showMsg('file-msg', d.error || (d.errors || []).join('; '), 'err');
           else showMsg('file-msg', cliproxySummary(d), 'ok');
         } catch (e) { showMsg('file-msg', 'Lỗi CLIProxy: ' + e.message, 'err') }
-        $('btn-file-import-cliproxy').disabled = false;
-        $('btn-file-import-cliproxy').textContent = 'Import vào CLIProxy';
+        updateFileSelectionUi();
       });
 
       // === Helpers ===

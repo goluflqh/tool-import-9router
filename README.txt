@@ -1,6 +1,6 @@
 # 9router Import Tool
 
-Version: 1.0.3
+Version: 1.0.4
 
 Tool web local để quản lý Codex OAuth accounts cho 9router và CLIProxyAPI.
 
@@ -34,11 +34,11 @@ Chạy tool ngay trên VPS, trỏ vào SQLite của 9router VPS:
 cd ~/tool-import-9router
 export IMPORT9ROUTER_INSTANCE=9router-vps
 export IMPORT9ROUTER_NO_BROWSER=1
-export 9ROUTER_SQLITE_PATH=/path/to/9router/db/data.sqlite
+export IMPORT9ROUTER_DB_PATH=/path/to/9router/db/data.sqlite
 python3 server.py
 ```
 
-Nếu 9router VPS dùng đúng path mặc định Linux `~/.config/9router/db/data.sqlite`, có thể bỏ `9ROUTER_SQLITE_PATH`.
+Nếu 9router VPS dùng đúng path mặc định Linux `~/.config/9router/db/data.sqlite`, có thể bỏ `IMPORT9ROUTER_DB_PATH`.
 
 Tunnel tool bằng port khác để không đụng tool local:
 
@@ -80,6 +80,14 @@ Quy tắc tránh xung đột:
 
 Import từ file JSON cũng dùng cùng backend với import tay, nên vẫn tự bổ sung refresh token theo email nếu nguồn local đã có.
 
+Di chuyển vài account từ local sang VPS:
+
+1. Mở tool local, tab `Tài khoản hiện có`.
+2. Tick đúng account cần chuyển.
+3. Bấm `Export đã chọn`.
+4. Mở tool VPS, tab `Import từ file`.
+5. Chọn file vừa export, bỏ tick account nào không muốn import, rồi bấm `Import vào 9router`.
+
 Refresh token không thể suy ra từ access token. Nó phải đến từ OAuth/offline access hoặc một local store đã có sẵn.
 
 ## Account free
@@ -97,6 +105,8 @@ Giới hạn nằm ở quyền của account: account free có thể không gọ
 - `Nạp từ Codex`: lấy token trong `~/.codex/auth.json` nạp vào 9router. Dùng khi Codex Desktop/CLI đang đăng nhập tốt và cần đưa token đó vào 9router.
 - `Ghi sang CLIProxy`: ghi account từ 9router sang CLIProxy runtime-auths. Dùng sau khi 9router đã `refresh OK`.
 - `Export JSON`: xuất JSON có token để backup/di chuyển thủ công trên máy của bạn. Không chia sẻ file này.
+- `Export đã chọn`: xuất JSON có token cho các account đã tick, tiện khi chỉ muốn đưa vài account sang VPS/local khác.
+- `Chọn tất cả` / `Bỏ chọn`: chọn nhanh account trong bảng hiện tại hoặc trong file import.
 - `Cách ly file cũ`: trong tab CLIProxy, đưa auth file không còn có trong 9router ra folder quarantine/backup để CLIProxy không dùng nhầm.
 
 ## Bảo mật
@@ -107,6 +117,7 @@ Giới hạn nằm ở quyền của account: account free có thể không gọ
 
 ## Version
 
+- `v1.0.4`: thêm checkbox chọn account, `Export đã chọn`, và chọn dòng khi import file JSON để chuyển đúng vài account giữa local/VPS.
 - `v1.0.3`: thêm chế độ instance cho VPS/local, custom SQLite path qua env, tunnel port riêng, và tùy chọn không auto-open browser.
 - `v1.0.2`: thêm lọc trùng email trong 9router và preview hydrate refresh cho import từ file JSON.
 - `v1.0.1`: chỉnh UI tiếng Việt có dấu, làm rõ account free, và giữ wording đơn giản hơn.
