@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.6 - 2026-05-24
+
+- Replaced the plain `README.txt` with a polished GitHub-rendered `README.md`.
+- Reorganized documentation around local quick start, VPS alias workflow, account transfer, UI actions, and safety model.
+- Documented the preferred `9router-vps` alias flow and the VPS database path `/home/deploy/.9router/db/data.sqlite`.
+
 ## v1.0.5 - 2026-05-24
 
 - Added a redacted 9router API key guard around SQLite write actions.
