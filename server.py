@@ -4,6 +4,7 @@ Auto-detect 9router SQLite database and serve import UI.
 """
 
 import base64
+import hashlib
 import json
 import os
 import re
@@ -79,6 +80,96 @@ def backup_sqlite():
 
 def connect_db():
     return sqlite3.connect(SQLITE_PATH, timeout=10)
+
+
+def _quote_ident(name):
+    return '"{}"'.format(str(name).replace('"', '""'))
+
+
+def _table_exists(db, name):
+    row = db.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+        (name,),
+    ).fetchone()
+    return bool(row)
+
+
+def _short_hash(value):
+    if value is None:
+        return ""
+    return hashlib.sha256(str(value).encode("utf-8")).hexdigest()[:12]
+
+
+def api_key_snapshot(db=None):
+    """Return a redacted fingerprint of 9router API keys for safety checks."""
+    if not SQLITE_PATH or not os.path.exists(SQLITE_PATH):
+        return {"supported": False, "count": 0, "items": [], "fingerprint": "", "error": "9router database not found"}
+
+    owns_db = db is None
+    db = db or connect_db()
+    try:
+        if not _table_exists(db, "apiKeys"):
+            return {"supported": False, "count": 0, "items": [], "fingerprint": "", "error": "apiKeys table not found"}
+
+        cols = [r[1] for r in db.execute("PRAGMA table_info(apiKeys)").fetchall()]
+        wanted = [c for c in ("id", "name", "machineId", "key", "createdAt", "updatedAt", "lastUsedAt") if c in cols]
+        if not wanted:
+            return {"supported": True, "count": 0, "items": [], "fingerprint": ""}
+
+        query = "SELECT {} FROM apiKeys ORDER BY {}".format(
+            ", ".join(_quote_ident(c) for c in wanted),
+            ", ".join(_quote_ident(c) for c in wanted if c in ("name", "id")) or "rowid",
+        )
+        items = []
+        for row in db.execute(query).fetchall():
+            data = dict(zip(wanted, row))
+            key_value = data.get("key") or ""
+            item = {
+                "id": data.get("id") or "",
+                "name": data.get("name") or "",
+                "machineId": data.get("machineId") or "",
+                "createdAt": data.get("createdAt") or "",
+                "updatedAt": data.get("updatedAt") or "",
+                "lastUsedAt": data.get("lastUsedAt") or "",
+                "keyHash": _short_hash(key_value) if key_value else "",
+                "keyLength": len(str(key_value)) if key_value else 0,
+            }
+            items.append(item)
+
+        fingerprint = "|".join(
+            "{}:{}:{}:{}".format(i["id"], i["name"], i["machineId"], i["keyHash"])
+            for i in items
+        )
+        return {"supported": True, "count": len(items), "items": items, "fingerprint": fingerprint}
+    except Exception as e:
+        return {"supported": False, "count": 0, "items": [], "fingerprint": "", "error": str(e)}
+    finally:
+        if owns_db:
+            db.close()
+
+
+def api_key_guard_check(before, after):
+    report = {
+        "ok": True,
+        "supported": bool(before.get("supported") or after.get("supported")),
+        "beforeCount": before.get("count", 0),
+        "afterCount": after.get("count", 0),
+        "names": [i.get("name") or i.get("machineId") or i.get("id") for i in after.get("items", [])],
+    }
+    if before.get("fingerprint") != after.get("fingerprint"):
+        report["ok"] = False
+        report["error"] = (
+            "Canh bao: danh sach API key cua 9router da thay doi trong luc tool ghi DB. "
+            "Tool khong ghi bang apiKeys; hay kiem tra dashboard/backup truoc khi tiep tuc."
+        )
+    elif after.get("supported") and after.get("count", 0) == 0:
+        report["warning"] = (
+            "Canh bao: 9router hien khong co API key nao trong bang apiKeys. "
+            "OpenClaw hoac app dung API key cu co the bi 401."
+        )
+    elif after.get("error"):
+        report["warning"] = "Khong doc duoc trang thai apiKeys: {}".format(after.get("error"))
+    return report
 
 
 def parse_json(value, fallback=None):
@@ -363,6 +454,7 @@ def import_connections(connections):
     if not SQLITE_PATH or not os.path.exists(SQLITE_PATH):
         return 0, 0, ["9router database not found"], {}, {"ok": False}
 
+    api_guard_before = api_key_snapshot()
     backup_sqlite()
     db = connect_db()
     cur = db.cursor()
@@ -446,9 +538,14 @@ def import_connections(connections):
             alias_report = ensure_model_aliases(db)
     except Exception as e:
         db.close()
+        counters["apiKeyGuard"] = api_key_guard_check(api_guard_before, api_key_snapshot())
         return inserted, updated, [str(e)], counters, {"ok": False, "error": str(e)}
 
     db.close()
+    api_guard = api_key_guard_check(api_guard_before, api_key_snapshot())
+    counters["apiKeyGuard"] = api_guard
+    if not api_guard.get("ok"):
+        errors.append(api_guard.get("error", "9router API key guard failed"))
     counters["details"] = details
     return inserted, updated, errors, counters, alias_report
 
@@ -495,6 +592,7 @@ def dedupe_connections():
     if not SQLITE_PATH or not os.path.exists(SQLITE_PATH):
         return {"ok": False, "removed": 0, "groups": [], "error": "9router database not found"}
 
+    api_guard_before = api_key_snapshot()
     backup = backup_sqlite()
     db = connect_db()
     cur = db.cursor()
@@ -535,10 +633,19 @@ def dedupe_connections():
                     cur.execute("UPDATE providerConnections SET priority=? WHERE id=? AND provider=?", (priority, conn_id, PROVIDER))
     except Exception as e:
         db.close()
-        return {"ok": False, "removed": len(removed_ids), "groups": details, "backup": backup, "error": str(e)}
+        api_guard = api_key_guard_check(api_guard_before, api_key_snapshot())
+        return {"ok": False, "removed": len(removed_ids), "groups": details, "backup": backup, "apiKeyGuard": api_guard, "error": str(e)}
 
     db.close()
-    return {"ok": True, "removed": len(removed_ids), "groups": details, "backup": backup}
+    api_guard = api_key_guard_check(api_guard_before, api_key_snapshot())
+    return {
+        "ok": api_guard.get("ok", True),
+        "removed": len(removed_ids),
+        "groups": details,
+        "backup": backup,
+        "apiKeyGuard": api_guard,
+        "error": "" if api_guard.get("ok", True) else api_guard.get("error", ""),
+    }
 
 
 def export_codex_payload(include_secrets=True):
@@ -1133,6 +1240,7 @@ class Handler(SimpleHTTPRequestHandler):
                 "desiredAliases": desired_model_aliases(),
                 "codexConfig": get_codex_config_status(),
                 "codexAuth": codex_auth_status(),
+                "apiKeyGuard": api_key_snapshot(),
                 "cliproxy": cliproxy_status(),
             })
             return
@@ -1172,6 +1280,7 @@ class Handler(SimpleHTTPRequestHandler):
                     "errors": errs,
                     "total": ins + upd,
                     "tokenSummary": token_report,
+                    "apiKeyGuard": token_report.get("apiKeyGuard", {}),
                     "aliasRepair": alias_report,
                 })
             except Exception as e:
@@ -1180,10 +1289,12 @@ class Handler(SimpleHTTPRequestHandler):
         if p == "/api/repair":
             try:
                 data = self._read_json_body()
+                api_guard_before = api_key_snapshot()
                 backup_sqlite()
                 alias_report = ensure_model_aliases()
                 config_report = repair_codex_config() if data.get("codexConfig", True) else {"ok": True, "changed": False}
-                self._json({"ok": True, "aliasRepair": alias_report, "codexConfig": config_report})
+                api_guard = api_key_guard_check(api_guard_before, api_key_snapshot())
+                self._json({"ok": api_guard.get("ok", True), "aliasRepair": alias_report, "codexConfig": config_report, "apiKeyGuard": api_guard})
             except Exception as e:
                 self._json({"error": str(e)}, 500)
             return
@@ -1226,6 +1337,7 @@ class Handler(SimpleHTTPRequestHandler):
                     "errors": errs,
                     "total": ins + upd,
                     "tokenSummary": token_report,
+                    "apiKeyGuard": token_report.get("apiKeyGuard", {}),
                     "aliasRepair": alias_report,
                 })
             except Exception as e:
@@ -1246,6 +1358,7 @@ class Handler(SimpleHTTPRequestHandler):
                     "errors": errs,
                     "total": ins + upd,
                     "tokenSummary": token_report,
+                    "apiKeyGuard": token_report.get("apiKeyGuard", {}),
                     "aliasRepair": alias_report,
                 })
             except Exception as e:

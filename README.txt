@@ -1,6 +1,6 @@
 # 9router Import Tool
 
-Version: 1.0.4
+Version: 1.0.5
 
 Tool web local để quản lý Codex OAuth accounts cho 9router và CLIProxyAPI.
 
@@ -114,9 +114,11 @@ Giới hạn nằm ở quyền của account: account free có thể không gọ
 - Không commit `backups/`, `runtime-auths`, `.bak`, `__pycache__`, hoặc file JSON export có token.
 - Tool chỉ bind local `127.0.0.1`.
 - API CORS chỉ cho Origin từ localhost/127.0.0.1/::1 để hỗ trợ SSH tunnel port riêng.
+- Tool có guard kiểm tra bảng `apiKeys` của 9router trước/sau các thao tác ghi SQLite. Guard chỉ báo hash rút gọn, không lộ API key, và sẽ cảnh báo nếu API key bị rỗng/thay đổi.
 
 ## Version
 
+- `v1.0.5`: thêm guard bảo vệ/cảnh báo API key 9router để tránh nhầm tool import với lỗi mất key 401 của app khác.
 - `v1.0.4`: thêm checkbox chọn account, `Export đã chọn`, và chọn dòng khi import file JSON để chuyển đúng vài account giữa local/VPS.
 - `v1.0.3`: thêm chế độ instance cho VPS/local, custom SQLite path qua env, tunnel port riêng, và tùy chọn không auto-open browser.
 - `v1.0.2`: thêm lọc trùng email trong 9router và preview hydrate refresh cho import từ file JSON.

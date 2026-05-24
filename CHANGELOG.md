@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.5 - 2026-05-24
+
+- Added a redacted 9router API key guard around SQLite write actions.
+- Import, repair, and duplicate cleanup now warn if the `apiKeys` table is empty or changes while the tool writes provider accounts.
+- The guard only stores key hashes/metadata in responses and never exposes full API keys.
+
 ## v1.0.4 - 2026-05-24
 
 - Added checkbox selection for existing 9router accounts.

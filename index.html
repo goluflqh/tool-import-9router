@@ -736,7 +736,21 @@
       function importSummary(d) {
         const s = d.tokenSummary || {};
         const aliasText = d.aliasRepair?.changed ? 'Alias gpt-5.5 đã được sửa.' : 'Alias gpt-5.5 OK.';
-        return `✅ Import thành công. Thêm mới: ${d.inserted || 0}, update: ${d.updated ?? d.replaced ?? 0}. Refresh token: mới ${s.providedRefresh || 0}, giữ cũ ${s.preservedRefresh || 0}, tự bổ sung ${s.hydratedRefresh || 0}, thiếu ${s.missingRefresh || 0}, bỏ sessionToken sai: ${s.rejectedSessionToken || 0}. ${aliasText}`;
+        return `✅ Import thành công. Thêm mới: ${d.inserted || 0}, update: ${d.updated ?? d.replaced ?? 0}. Refresh token: mới ${s.providedRefresh || 0}, giữ cũ ${s.preservedRefresh || 0}, tự bổ sung ${s.hydratedRefresh || 0}, thiếu ${s.missingRefresh || 0}, bỏ sessionToken sai: ${s.rejectedSessionToken || 0}. ${aliasText}${apiKeyGuardText(d)}`;
+      }
+      function apiKeyGuard(d) {
+        return d?.apiKeyGuard || d?.tokenSummary?.apiKeyGuard || null;
+      }
+      function apiKeyGuardText(d) {
+        const guard = apiKeyGuard(d);
+        if (!guard) return '';
+        if (guard.error) return ` Cảnh báo API key 9router: ${guard.error}`;
+        if (guard.warning) return ` Cảnh báo API key 9router: ${guard.warning}`;
+        return '';
+      }
+      function apiKeyGuardLevel(d) {
+        const guard = apiKeyGuard(d);
+        return guard?.error || guard?.ok === false ? 'err' : 'ok';
       }
       function cliproxySummary(d) {
         return `✅ Cliproxy OK. Thêm mới: ${d.inserted || 0}, update: ${d.updated || 0}, thiếu refresh: ${d.missingRefresh || 0}. Backup: ${d.backup || 'không có file cũ'}`;
@@ -897,7 +911,7 @@
           const r = await fetch(API + '/api/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ connections: parsed }) });
           const d = await r.json();
           if (d.error) { showMsg('import-msg', d.error, 'err'); }
-          else { showMsg('import-msg', importSummary(d), 'ok'); }
+          else { showMsg('import-msg', importSummary(d), apiKeyGuardLevel(d)); }
         } catch (e) { showMsg('import-msg', 'Lỗi kết nối server: ' + e.message, 'err') }
         $('btn-import').disabled = false;
         $('btn-import').textContent = 'Import vào 9router';
@@ -1049,7 +1063,7 @@
           const r = await fetch(API + '/api/dedupe-connections', { method: 'POST' });
           const d = await r.json();
           if (d.error || d.ok === false) showMsg('acc-msg', d.error || 'Lỗi lọc trùng email', 'err');
-          else showMsg('acc-msg', d.removed ? `Đã xóa ${d.removed} dòng trùng email. Backup: ${d.backup || 'không có'}` : 'Không có email trùng.', 'ok');
+          else showMsg('acc-msg', (d.removed ? `Đã xóa ${d.removed} dòng trùng email. Backup: ${d.backup || 'không có'}` : 'Không có email trùng.') + apiKeyGuardText(d), apiKeyGuardLevel(d));
         } catch (e) { showMsg('acc-msg', 'Lỗi lọc trùng email: ' + e.message, 'err') }
         $('btn-dedupe').disabled = false;
         loadAccounts();
@@ -1062,7 +1076,7 @@
           const r = await fetch(API + '/api/import-from-cliproxy', { method: 'POST' });
           const d = await r.json();
           if (d.error || d.ok === false) showMsg('acc-msg', d.error || (d.errors || []).join('; '), 'err');
-          else showMsg('acc-msg', importSummary(d), 'ok');
+          else showMsg('acc-msg', importSummary(d), apiKeyGuardLevel(d));
         } catch (e) { showMsg('acc-msg', 'Lỗi nạp từ CLIProxy: ' + e.message, 'err') }
         $('btn-import-from-cliproxy').disabled = false;
         loadAccounts();
@@ -1075,7 +1089,7 @@
           const r = await fetch(API + '/api/import-codex-auth', { method: 'POST' });
           const d = await r.json();
           if (d.error || d.ok === false) showMsg('acc-msg', d.error || (d.errors || []).join('; '), 'err');
-          else showMsg('acc-msg', importSummary(d), 'ok');
+          else showMsg('acc-msg', importSummary(d), apiKeyGuardLevel(d));
         } catch (e) { showMsg('acc-msg', 'Lỗi nạp Codex auth: ' + e.message, 'err') }
         $('btn-import-codex-auth').disabled = false;
         loadAccounts();
@@ -1296,7 +1310,7 @@
           const r = await fetch(API + '/api/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ connections: conns }) });
           const d = await r.json();
           if (d.error) showMsg('file-msg', d.error, 'err');
-          else showMsg('file-msg', importSummary(d), 'ok');
+          else showMsg('file-msg', importSummary(d), apiKeyGuardLevel(d));
         } catch (e) { showMsg('file-msg', 'Lỗi: ' + e.message, 'err') }
         updateFileSelectionUi();
         loadAccounts();
